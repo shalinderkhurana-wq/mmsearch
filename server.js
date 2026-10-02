@@ -151,6 +151,87 @@ function deriveAngles(node, peopleQuestions){
   ];
 }
 
+
+app.post("/api/discover", async (req,res)=>{
+  try{
+    const keyword = clean(req.body?.keyword || "");
+    if(!keyword) return res.status(400).send("keyword required");
+    const queries = uniq([
+      keyword,
+      `"${keyword}" health India`,
+      `${keyword} symptoms questions`,
+      `${keyword} treatment discussion`,
+      `${keyword} lifestyle wellness`
+    ]).slice(0,5);
+
+    const results = await Promise.allSettled([
+      Promise.all(queries.slice(0,3).map(q=>youtubeSearch(q,10))),
+      Promise.all(queries.slice(0,3).map(q=>redditSearch(q,15))),
+      Promise.all(queries.slice(0,3).map(q=>newsRss(q)))
+    ]);
+    const yt = results[0].status==="fulfilled" ? results[0].value.flatMap(x=>x.items||[]) : [];
+    const rd = results[1].status==="fulfilled" ? results[1].value.flat() : [];
+    const nw = results[2].status==="fulfilled" ? results[2].value.flat() : [];
+    const all=[...yt,...rd,...nw];
+
+    const stop=new Set(("the and for with from that this what when where how why are was has have into about health healthy treatment symptoms symptom india indian people their your you they these those does can could should will after before best home medicine medical disease condition".split(" ")));
+    const counts=new Map();
+    for(const item of all){
+      const text=clean(`${item.title||""} ${item.text||""}`).toLowerCase();
+      const words=text.match(/[a-z][a-z-]{3,}/g)||[];
+      for(const w of words){
+        if(w===keyword.toLowerCase() || stop.has(w)) continue;
+        counts.set(w,(counts.get(w)||0)+1);
+      }
+    }
+    const recurring=[...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,18).map(x=>x[0]);
+
+    const buckets=[
+      {name:"Symptoms & Human Problems",keys:["pain","symptom","swelling","fatigue","urine","stone","blood","burning","constipation","weight"],reason:"Repeated symptom/problem language in live material"},
+      {name:"Tests & Diagnosis",keys:["test","report","scan","creatinine","egfr","ultrasound","diagnosis","level","marker"],reason:"Testing/diagnostic language recurring in live material"},
+      {name:"Food & Diet",keys:["food","diet","water","salt","protein","fruit","vegetable","drink","nutrition"],reason:"Food/diet language recurring in live material"},
+      {name:"Treatment & Remedies",keys:["treatment","medicine","remedy","ayurveda","herbal","therapy","cure","tablet"],reason:"Treatment/remedy language recurring in live material"},
+      {name:"Mechanism & Body",keys:["function","kidney","blood","filter","hormone","inflammation","bacteria","organ"],reason:"Body-mechanism language recurring in live material"},
+      {name:"Lifestyle & Prevention",keys:["exercise","lifestyle","habit","prevention","morning","sleep","stress"],reason:"Lifestyle/prevention language recurring in live material"}
+    ];
+
+    const categories=[];
+    for(const b of buckets){
+      const hits=all.filter(item=>b.keys.some(k=>`${item.title||""} ${item.text||""}`.toLowerCase().includes(k)));
+      if(hits.length) categories.push({
+        name:b.name,reason:b.reason,items:hits.length,
+        signal:hits.length>=12?"HIGH":hits.length>=5?"RISING":"EMERGING",
+        samples:hits.slice(0,10).map(x=>({title:x.title||"Source signal",text:x.text||"",source:x.source||"Live source",url:x.url||null}))
+      });
+    }
+    if(categories.length<3){
+      for(const term of recurring.slice(0,6)){
+        const hits=all.filter(item=>`${item.title||""} ${item.text||""}`.toLowerCase().includes(term));
+        if(hits.length>=2) categories.push({
+          name:term.charAt(0).toUpperCase()+term.slice(1),
+          reason:"Recurring term extracted from current source material",items:hits.length,
+          signal:hits.length>=10?"HIGH":hits.length>=5?"RISING":"EMERGING",
+          samples:hits.slice(0,8).map(x=>({title:x.title||"Source signal",text:x.text||"",source:x.source||"Live source",url:x.url||null}))
+        });
+      }
+    }
+
+    const questions=all.map(x=>clean(x.text||x.title)).filter(Boolean)
+      .filter(t=>/[?]|why|how|what|kya|kyun|kaise|can i|should i|does|is it/i.test(t)).slice(0,20);
+    const score=scoreSignals(all,keyword);
+
+    res.json({
+      mode:"LIVE KEYWORD DISCOVERY",keyword,
+      timestamp:new Date().toLocaleString("en-IN",{timeZone:"Asia/Kolkata"}),
+      signalStrength:score>=75?"VERY HIGH":score>=55?"HIGH":score>=35?"RISING":"EARLY",
+      signalScore:score,
+      sources:uniq([process.env.YOUTUBE_API_KEY?"YouTube Search":null,"Reddit public search","Google News RSS"]),
+      rawCounts:{youtube:yt.length,reddit:rd.length,news:nw.length,total:all.length},
+      categories:categories.slice(0,8),questions:questions.slice(0,12)
+    });
+  }catch(err){ console.error(err); res.status(500).send(err.message||"Discovery error"); }
+});
+
 app.post("/api/scan", async (req,res)=>{
   try{
     const ctx = req.body || {};
