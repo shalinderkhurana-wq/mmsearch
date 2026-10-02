@@ -1,389 +1,88 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MEDIMANCH Viral Territory Explorer — Prototype</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>MEDIMANCH Viral Territory Explorer V2</title>
 <style>
-:root{--bg:#f5f6f8;--panel:#fff;--ink:#17191c;--muted:#69717c;--line:#e2e5e9;--accent:#111;--chip:#f0f2f4;--hot:#fff0d6;--green:#e9f7ee}
-*{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-header{height:64px;background:#111;color:#fff;display:flex;align-items:center;padding:0 22px;gap:16px}
-.logo{font-weight:800;letter-spacing:.5px}.sub{opacity:.65;font-size:12px}
-.layout{display:grid;grid-template-columns:290px 1fr 310px;height:calc(100vh - 64px)}
-aside,.right{background:var(--panel);overflow:auto}.left{border-right:1px solid var(--line);padding:16px}.right{border-left:1px solid var(--line);padding:16px}
-.main{padding:20px 24px;overflow:auto}
-.search{display:flex;gap:8px;margin-bottom:16px}.search input{flex:1;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:14px}.btn{border:0;border-radius:9px;padding:10px 13px;cursor:pointer;background:#111;color:#fff;font-weight:700}.btn.secondary{background:var(--chip);color:#222}.btn.small{padding:7px 9px;font-size:12px}
-.section-title{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:16px 0 8px}
-.tree button{width:100%;text-align:left;border:0;background:transparent;padding:9px 8px;border-radius:8px;cursor:pointer;color:#222}.tree button:hover,.tree button.active{background:#eef0f2}.tree .indent{padding-left:24px}.tree .indent2{padding-left:42px}
-.crumb{font-size:12px;color:var(--muted);margin-bottom:14px}.crumb span{cursor:pointer;color:#333}.crumb span:hover{text-decoration:underline}
-h1{font-size:26px;margin:4px 0 7px}.desc{color:var(--muted);font-size:14px;max-width:760px}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:20px}
-.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px;cursor:pointer}.card:hover{border-color:#aaa;box-shadow:0 4px 14px #0000000a}.card h3{margin:0 0 7px;font-size:15px}.meta{font-size:12px;color:var(--muted);line-height:1.55}
-.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.badge{font-size:10px;padding:4px 7px;border-radius:99px;background:var(--chip)}.hot{background:var(--hot)}.fit{background:var(--green)}
-.toolbar{display:flex;gap:8px;align-items:center;margin:18px 0}.toolbar .spacer{flex:1}
-.angle{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}.angle strong{font-size:13px}.titles{margin-top:8px;padding-left:18px}.titles li{margin:7px 0;font-size:13px}
-.save{float:right}.saved-item{padding:10px;border-bottom:1px solid var(--line);font-size:12px}.empty{color:var(--muted);font-size:13px;padding:12px 0}
-.kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px}.kpi div{background:var(--chip);border-radius:9px;padding:10px}.kpi b{display:block;font-size:17px}.kpi span{font-size:10px;color:var(--muted)}
-.notice{background:#f7f7f7;border:1px dashed #cfd3d7;border-radius:10px;padding:11px;font-size:12px;color:#59616b;margin-top:14px}
-@media(max-width:1000px){.layout{grid-template-columns:230px 1fr}.right{display:none}}
-</style>
-
-<style>
-.tree{margin-top:14px}
-.tree-root{border:1px solid #ddd;border-radius:12px;background:#fff;padding:14px 16px;margin:12px 0}
-.tree-root-title{font-size:19px;font-weight:800;margin-bottom:4px}
-.tree-reason{font-size:12px;color:#777;margin:0 0 8px 24px}
-.tree-sub{margin-left:20px;padding:9px 0 2px 18px;border-left:2px solid #ddd}
-.tree-sub-title{font-weight:750;font-size:15px;margin-bottom:4px}
-.tree-leaf-list{margin-left:18px}
-.tree-leaf{padding:8px 10px;margin:5px 0;border-radius:8px;background:#f7f7f7;cursor:pointer}
-.tree-leaf:hover{background:#eee}
-.tree-leaf-title{font-weight:650}
-.tree-leaf-meta{font-size:11px;color:#777;margin-top:2px}
+:root{--bg:#0b0d0e;--panel:#121617;--panel2:#171c1d;--line:#293132;--text:#f5f6f4;--muted:#9da6a5;--accent:#d8ff3e;--accent2:#91c400;--danger:#ffb4ab}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,Arial,sans-serif}.top{position:sticky;top:0;z-index:10;background:rgba(11,13,14,.96);border-bottom:1px solid var(--line);padding:18px 24px}.brand{font-weight:800;letter-spacing:.08em;font-size:14px}.sub{color:var(--muted);font-size:12px;margin-top:2px}.search{display:flex;gap:10px;margin-top:14px;max-width:900px}.search input{flex:1;background:#090b0c;border:1px solid var(--line);color:white;border-radius:10px;padding:13px 14px;font-size:16px}.btn{background:var(--accent);border:0;border-radius:9px;padding:11px 16px;font-weight:800;cursor:pointer;color:#101400}.btn:disabled{opacity:.5;cursor:wait}.btn.secondary{background:#202728;color:#fff;border:1px solid var(--line)}.btn.small{padding:7px 10px;font-size:12px}.wrap{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;max-width:1450px;margin:0 auto;padding:20px}.main,.side{min-width:0}.side{position:sticky;top:142px;align-self:start}.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px;margin-bottom:14px}.crumb{color:var(--muted);font-size:12px;margin-bottom:12px}.crumb span{cursor:pointer;color:#cfd5d4}.h1{font-size:28px;font-weight:850;margin:0 0 5px}.desc{color:var(--muted);max-width:900px}.kpis{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.kpi{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 14px;min-width:130px}.kpi b{display:block;font-size:20px}.kpi span{display:block;color:var(--muted);font-size:10px;letter-spacing:.08em}.tree{margin-top:16px}.root{border:1px solid var(--line);border-radius:12px;background:#101415;margin:10px 0;overflow:hidden}.rootHead{padding:13px 14px;display:flex;align-items:center;gap:10px;cursor:pointer}.rootHead:hover,.nodeRow:hover{background:#171c1d}.rootTitle{font-size:18px;font-weight:800}.count{margin-left:auto;color:var(--muted);font-size:11px}.branch{padding:0 12px 12px 26px}.nodeRow{border-left:1px solid #3a4445;padding:9px 10px;margin-left:4px;cursor:pointer;border-radius:0 8px 8px 0}.nodeName{font-weight:700}.nodeMeta{font-size:11px;color:var(--muted)}.children{margin-left:15px}.leaf{border-left:1px dashed #3a4445;padding:8px 10px;margin-left:8px;cursor:pointer}.leaf:hover{background:#1b2021}.leafName{font-weight:650}.badge{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 7px;font-size:10px;color:var(--muted);margin-right:5px}.badge.hot{color:#101400;background:var(--accent);border-color:var(--accent)}.toolbar{display:flex;align-items:center;gap:10px;margin:16px 0 8px}.spacer{flex:1}.signal{border-top:1px solid var(--line);padding:12px 0}.signalTitle{font-weight:700}.meta{font-size:12px;color:var(--muted)}a{color:var(--accent)}.notice{background:#171c1d;border:1px solid var(--line);border-radius:10px;padding:12px;color:#c5cdcc;font-size:12px}.side h3{margin:0 0 8px}.side .selected{font-size:12px;color:var(--muted);word-break:break-word}.titleBox{border:1px solid var(--line);background:#101415;border-radius:10px;padding:12px;margin:8px 0}.titleBox b{font-size:13px}.source{border-top:1px solid var(--line);padding:10px 0}.empty{padding:40px 10px;color:var(--muted);text-align:center}.load{width:100%;margin-top:14px}.smalltext{font-size:11px;color:var(--muted)}
+@media(max-width:950px){.wrap{grid-template-columns:1fr}.side{position:static}.top{padding:14px}.wrap{padding:12px}.h1{font-size:23px}}
 </style>
 </head>
 <body>
-<header><div class="logo">MEDIMANCH</div><div class="sub">VIRAL TERRITORY EXPLORER · LIVE SIGNAL V1.2 HIERARCHY</div></header>
-<div class="layout">
-<aside class="left">
-  <div class="search"><input id="kw" placeholder="Enter: gut, liver, sleep..."><button class="btn small" onclick="discover()">Go</button></div>
-  <div class="section-title">Main Keywords</div>
-  <div id="tree" class="tree"></div>
-  <div class="section-title">Navigation</div>
-  <button class="btn secondary small" onclick="goHome()">⌂ Home</button>
-  <button class="btn secondary small" style="margin-top:6px" onclick="showSaved()">★ Saved Shortlist</button>
-</aside>
-<main class="main">
-  <div id="content"></div>
-</main>
-<aside class="right">
-  <div class="section-title">Current Path</div><div id="pathbox" class="meta">Home</div>
-  <div class="section-title">Saved Shortlist</div>
-  <div id="saved"></div>
-  <div class="notice">LIVE ENGINE: the selected territory is sent to the backend for current-source discovery. Preloaded hierarchy is navigation only; scan results come from /api/scan.</div>
-</aside>
+<header class="top">
+  <div class="brand">MEDIMANCH · VIRAL TERRITORY EXPLORER V2</div>
+  <div class="sub">LIVE FEED = EVIDENCE · HIERARCHY = INTELLIGENCE · LEAF TITLES = CONTENT OPPORTUNITIES</div>
+  <div class="search"><input id="kw" placeholder="Search any health keyword — gut health, diabetes, PCOS, kidney..."/><button class="btn" id="go">Discover</button></div>
+</header>
+<div class="wrap">
+  <main class="main"><div id="content" class="panel"><div class="empty">Enter any keyword to build a live territory map.</div></div></main>
+  <aside class="side">
+    <div class="panel"><h3>Selected path</h3><div id="path" class="selected">Nothing selected</div></div>
+    <div class="panel"><h3>What this map means</h3><div class="smalltext">Territories and angles are inferred from recurring language in live source material. The final leaf is a title opportunity. It is not an official search-volume ranking.</div></div>
+  </aside>
 </div>
 <script>
-/*
-  MEDIMANCH V1 REAL SIGNAL API
-  ----------------------------------
-  To connect a real backend later, replace localSignalEngine(ctx) with:
-
-    const response = await fetch("/api/scan", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(ctx)
-    });
-    return await response.json();
-
-  Expected response:
-  {
-    signalStrength,
-    peopleQuestions: [],
-    discussions: [],
-    behaviours: [],
-    bic: {primary, connected, relationship},
-    angles: [[type, title], ...],
-    sourceStatus
-  }
-*/
-
-const DATA={
-Gut:{desc:"Large human wellness flagship. Explore only the territories with enough cluster density to justify deeper research.",children:{
-  Microbiome:{children:{
-    "Fermented Foods":{children:{
-      "Fermented Rice":{signal:"RISING",density:"VERY HIGH",angles:[
-        ["Transformation","What actually changes when rice is fermented?","Raat bhar rakhe chawal mein subah tak kya badal jaata hai?","Fresh rice vs fermented rice: body ke liye kya badalta hai?"],
-        ["Traditional Practice","Why was fermented rice used traditionally?","Dadi ka fermented rice: sirf parampara ya kuch science bhi?"],
-        ["Myth / Reality","Are all leftover rice preparations 'probiotic'?","Basi chawal aur fermented rice — kya dono same hain?"],
-        ["Body Mechanism","What happens during fermentation?","Chawal ferment hone par starch ke saath actually kya hota hai?"]
-      ]},
-      "Curd / Yogurt":{signal:"HIGH",density:"VERY HIGH",angles:[["Comparison","Curd vs probiotic products","Ghar ka dahi vs probiotic drink: difference kya hai?"]]}}
-    },
-    "Probiotics":{signal:"HIGH",density:"VERY HIGH",angles:[["Myth / Reality","Do probiotic foods always improve gut health?","Har probiotic food gut ke liye useful hota hai kya?"]]},
-    "Prebiotics":{signal:"RISING",density:"HIGH",angles:[["Food Behaviour","Which Indian foods naturally feed gut bacteria?","Gut bacteria ko khana kaun deta hai? Indian plate mein kya hai?"]]}
-  }},
-  "Gut Motility":{signal:"HIGH",density:"VERY HIGH",angles:[["Body Mechanism","How food actually moves through the gut","Khana pet se body ke bahar tak kitne time mein pahuchta hai?"]]},
-  "Bowel Movement":{signal:"HIGH",density:"VERY HIGH",angles:[["Human Problem","Why do some people feel incomplete evacuation?","Pet saaf hone ke baad bhi 'poora saaf nahi hua' kyun lagta hai?"]]},
-  "Food Sequencing":{signal:"RISING",density:"HIGH",angles:[["Experiment","Does eating order change the body's response?","Sabzi, protein ya roti — khane ka order sach mein matter karta hai?"]]}
-}},
-Liver:{desc:"Flagship for liver function, metabolic health and traditional/modern wellness questions.",children:{
-  "Bile & Digestion":{children:{
-    "Bile Flow":{signal:"EMERGING",density:"HIGH",angles:[["Body Mechanism","What bile actually does after a meal","Fat khane ke baad body mein bile actually kya karti hai?"]]},
-    "Gallbladder":{signal:"HIGH",density:"HIGH",angles:[["Human Question","Why does the gallbladder matter for digestion?","Gallbladder sirf 'stone' ke liye hota hai ya digestion mein bhi role hai?"]]}
-  }},
-  "Fatty Liver":{signal:"HIGH",density:"VERY HIGH",angles:[["Hidden Mechanism","How can fatty liver develop without obvious symptoms?","Fatty liver mein liver ke andar actually kya change hota hai?"]]},
-  "Liver Tests":{signal:"RISING",density:"VERY HIGH",angles:[["Clarity","What do common liver tests actually tell you?","Liver ke common tests mein kaunsa number kya batata hai?"]]}
-}},
-Sleep:{desc:"Flagship covering sleep behaviour, circadian biology, recovery and practical routines.",children:{
-  "Circadian Rhythm":{children:{
-    "Morning Light":{signal:"RISING",density:"HIGH",angles:[["Behaviour","Why morning light matters for body timing","Subah ki sunlight body clock ko signal kaise deti hai?"]]},
-    "Sleep Timing":{signal:"HIGH",density:"VERY HIGH",angles:[["Comparison","Same hours, different timing — does it matter?","8 ghante ki sleep: timing matter karti hai kya?"]]}
-  }},
-  "Night Waking":{signal:"HIGH",density:"VERY HIGH",angles:[["Human Problem","Why people wake repeatedly at night","Raat ko baar-baar aankh khulna — body mein kya ho raha hai?"]]},
-  "Sleep Practices":{signal:"RISING",density:"HIGH",angles:[["Experiment","Which bedtime behaviours are actually plausible?","Sone se pehle ki 5 popular practices: kaunsi logic samajh aati hai?"]]}
-}}};
-
-let current=[], currentNode=null, saved=JSON.parse(localStorage.getItem("mm_saved")||"[]");
-
-function nodeChildren(n){return n&&n.children?n.children:{}}
+const state={keyword:"",batch:0,signals:[],tree:[],selected:null,nextBatch:0,exhausted:false};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function pathText(p){return p.map(esc).join(" › ")}
+function setPath(p){$("path").innerHTML=pathText(p||[]);}
+function sourceCount(items){return (items||[]).length}
 function renderTree(){
- const el=document.getElementById("tree"); el.innerHTML="";
- Object.entries(DATA).forEach(([k,v])=>{
-  const b=document.createElement("button"); b.textContent="▸ "+k; b.onclick=()=>openNode([k],v); el.appendChild(b);
- });
-}
-function pathHTML(){
- return current.length?current.map((x,i)=>`<span onclick="jump(${i})">${x}</span>`).join("  ›  "):"Home";
-}
-function jump(i){
-  const p=current.slice(0,i+1);
-  if(currentNode && currentNode.name && !DATA[p[0]]){
-    if(i===0){ goHome(); }
-    return;
-  }
-  let n=DATA[p[0]];
-  if(!n){goHome();return;}
-  for(let j=1;j<p.length;j++) n=n.children[p[j]];
-  openNode(p,n);
-}
-function openNode(path,n){
- current=path;currentNode=n;
- document.getElementById("pathbox").innerHTML=pathHTML();
- if(!path.length){goHome();return}
- let html=`<div class="crumb">${pathHTML()}</div><h1>${path[path.length-1]}</h1><div class="desc">${n.desc||"Explore this node, then drill down only where cluster density and signal justify deeper research."}</div>`;
- if(n.signal||n.density){
-   html+=`<div class="kpi"><div><b>${n.signal||"—"}</b><span>CURRENT SIGNAL</span></div><div><b>${n.density||"—"}</b><span>CLUSTER DENSITY</span></div></div>`;
- }
- if(n.children){
-  html+=`<div class="toolbar"><b>Next layer</b><span class="spacer"></span><button class="btn small" onclick="scanNode()">🔥 Scan this node</button></div><div class="cards">`;
-  Object.entries(n.children).forEach(([k,v])=>html+=`<div class="card" onclick='openNode(${JSON.stringify(path.concat(k))},currentNode.children[${JSON.stringify(k)}])'><h3>${k}</h3><div class="meta">${v.signal?"Signal: "+v.signal:"Explore sub-category"} ${v.density?" · Density: "+v.density:""}</div>${v.signal?`<div class="badges"><span class="badge hot">${v.signal}</span><span class="badge fit">${v.density||"MAPPED"}</span></div>`:""}</div>`);
-  html+="</div>";
- } else if(n.angles){
-  html+=`<div class="toolbar"><b>Viral angles</b><span class="spacer"></span><button class="btn small" onclick="saveCurrent()">★ Save cluster</button></div>`;
-  n.angles.forEach((a,i)=>{html+=`<div class="angle"><button class="btn secondary small save" onclick="saveAngle(${i})">★</button><strong>${i+1}. ${a[0]}</strong><div class="meta" style="margin-top:5px">${a[1]}</div><ol class="titles">`+a.slice(2).map(t=>`<li>${t}</li>`).join("")+`</ol></div>`});
-  html+=`<div class="notice">Next production step: run live signal research on this cluster before selecting the final title. The prototype currently shows example angles only.</div>`;
- }
- document.getElementById("content").innerHTML=html; renderSaved();
-}
-function goHome(){current=[];currentNode=null;document.getElementById("pathbox").textContent="Home";document.getElementById("content").innerHTML=`<h1>Choose a main keyword</h1><div class="desc">Click a flagship, then drill down. Your path stays visible and saved items remain on the right.</div><div class="cards">`+Object.entries(DATA).map(([k,v])=>`<div class="card" onclick='openNode(${JSON.stringify([k])},DATA[${JSON.stringify(k)}])'><h3>${k}</h3><div class="meta">${v.desc}</div></div>`).join("")+"</div>";renderSaved()}
-async function discover(){
-  const q=document.getElementById("kw").value.trim();
-  if(!q) return;
-  const btn=document.querySelector(".search .btn");
-  if(btn){btn.disabled=true;btn.textContent="…";}
-  document.getElementById("content").innerHTML=`
-    <h1>🔎 Discovering "${esc(q)}"</h1>
-    <div class="notice">Searching live sources and building a territory map. This is a live discovery request, not a preloaded keyword.</div>`;
-  try{
-    const r=await fetch("/api/discover",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({keyword:q})
-    });
-    if(!r.ok) throw new Error(await r.text());
-    renderDiscovery(await r.json());
-  }catch(e){
-    document.getElementById("content").innerHTML=`<h1>Discovery error</h1><div class="notice">${esc(e.message||"Could not run live discovery.")}</div>`;
-  }finally{
-    if(btn){btn.disabled=false;btn.textContent="Go";}
-  }
-}
-
-
-
-function renderDiscovery(d){
-  const roots = d.tree || [];
-  document.getElementById("pathbox").innerHTML =
-    `<span onclick="goHome()">Home</span> › ${esc(d.keyword)}`;
-
-  let html = `
-    <div class="crumb"><span onclick="goHome()">Home</span> › ${esc(d.keyword)}</div>
-    <h1>🌳 ${esc(d.keyword)} — LIVE TERRITORY MAP</h1>
-    <div class="desc">
-      This is a hierarchical map built from current source signals.
-      The system separates <b>territory → sub-territory → concept → question/angle</b>
-      instead of showing a flat list of generic categories.
-    </div>
-    <div class="kpi">
-      <div><b>${esc(d.signalStrength || "EARLY")}</b><span>DISCOVERY SIGNAL</span></div>
-      <div><b>${esc(String(d.rawCounts?.total || 0))}</b><span>RAW ITEMS SCANNED</span></div>
-      <div><b>${esc(String(roots.length))}</b><span>TOP TERRITORIES</span></div>
-    </div>
-    <div class="notice">
-      <b>LIVE SOURCES:</b> ${(d.sources || []).map(esc).join(" · ")}<br>
-      <b>SCANNED:</b> ${esc(d.timestamp || "")}
-    </div>
-    <div class="tree">
-  `;
-
-  if(!roots.length){
-    html += `<div class="notice">No meaningful hierarchy could be derived from the current live signals. Try a broader keyword.</div>`;
-  } else {
-    roots.forEach((root, ri)=>{
-      html += `
-        <div class="tree-root">
-          <div class="tree-root-title">⭐ ${ri+1}. ${esc(root.name)}</div>
-          <div class="tree-reason">${esc(root.reason || "")}</div>
-      `;
-      (root.children || []).forEach((sub, si)=>{
-        html += `
-          <div class="tree-sub">
-            <div class="tree-sub-title">└── ${esc(sub.name)}</div>
-            <div class="tree-leaf-list">
-        `;
-        (sub.children || []).forEach((leaf, li)=>{
-          html += `
-            <div class="tree-leaf"
-                 onclick='openDiscovered(${JSON.stringify([d.keyword,root.name,sub.name,leaf.name])},${JSON.stringify(leaf)})'>
-              <div class="tree-leaf-title">└── ${esc(leaf.name)}</div>
-              <div class="tree-leaf-meta">
-                ${esc(leaf.signal || "DISCOVERY")} · ${esc(String(leaf.items || 0))} source signals
-              </div>
-            </div>
-          `;
-        });
-        html += `</div></div>`;
+  const d={keyword:state.keyword,tree:state.tree,signals:state.signals,nextBatch:state.nextBatch,exhausted:state.exhausted};
+  let html=`<div class="crumb">Home › ${esc(d.keyword)}</div><h1 class="h1">🌳 ${esc(d.keyword)} — Territory Map</h1><div class="desc">The map is built from live signals. Open a territory, then an angle, and only the final layer becomes content titles.</div>`;
+  html+=`<div class="kpis"><div class="kpi"><b>${d.signals.length}</b><span>SOURCE SIGNALS</span></div><div class="kpi"><b>${d.tree.length}</b><span>TERRITORIES</span></div><div class="kpi"><b>${d.nextBatch===null?'DONE':d.nextBatch+1}</b><span>BATCHES AVAILABLE</span></div></div>`;
+  html+=`<div class="notice"><b>Expandable discovery.</b> Each Load More request fetches another live query set and rebuilds the map from the newly collected evidence.</div><div class="tree">`;
+  if(!d.tree.length) html+=`<div class="empty">Not enough repeated signal language yet. Use Load More.</div>`;
+  d.tree.forEach((r,ri)=>{
+    html+=`<section class="root"><div class="rootHead" onclick="toggle('r${ri}')"><div class="rootTitle">⭐ ${esc(r.name)}</div><span class="count">${r.items||0} signals · ${esc(r.signal||'')}</span></div><div id="r${ri}" class="branch">`;
+    (r.children||[]).forEach((dim,di)=>{
+      const id=`r${ri}d${di}`;
+      html+=`<div class="nodeRow" onclick="toggle('${id}')"><div class="nodeName">├── ${esc(dim.name)}</div><div class="nodeMeta">${dim.items||0} supporting signals</div></div><div id="${id}" class="children">`;
+      (dim.children||[]).forEach((leaf,li)=>{
+        const p=[d.keyword,r.name,dim.name,leaf.name];
+        html+=`<div class="leaf" onclick='openLeaf(${JSON.stringify(p)},${JSON.stringify(leaf).replace(/'/g,"&#39;")})'><div class="leafName">└── ${esc(leaf.name)}</div><div class="nodeMeta"><span class="badge">${esc(leaf.signal||'')}</span>${leaf.items||0} signals</div></div>`;
       });
-      html += `</div>`;
+      html+=`</div>`;
     });
-  }
-
-  html += `
-    </div>
-    <div class="toolbar"><b>Repeated human questions / discussions</b><span class="spacer"></span></div>
-  `;
-
-  const qs = d.questions || [];
-  html += qs.length
-    ? qs.slice(0,10).map((x,i)=>`<div class="angle"><strong>${i+1}. ${esc(x)}</strong></div>`).join("")
-    : `<div class="notice">No strong question-shaped signals were extracted.</div>`;
-
-  document.getElementById("content").innerHTML = html;
-}
-
-
-function openDiscovered(path,node){
-  current = path;
-  currentNode = node;
-  document.getElementById("pathbox").innerHTML =
-    path.map(x=>esc(x)).join(" › ");
-
-  let html = `
-    <div class="crumb">${path.map(x=>esc(x)).join(" › ")}</div>
-    <h1>${esc(node.name)}</h1>
-    <div class="desc">${esc(node.reason || "Live-discovered territory")}</div>
-
-    <div class="kpi">
-      <div><b>${esc(node.signal || "DISCOVERY")}</b><span>SIGNAL</span></div>
-      <div><b>${esc(String(node.items || 0))}</b><span>RELATED ITEMS</span></div>
-    </div>
-
-    <div class="toolbar">
-      <b>🔥 Scan this territory</b>
-      <span class="spacer"></span>
-      <button class="btn small" onclick="scanNode()">🔥 Scan live signals</button>
-    </div>
-
-    <div class="toolbar">
-      <b>Real source material</b>
-      <span class="spacer"></span>
-    </div>
-  `;
-
-  const samples = node.samples || [];
-  if(!samples.length){
-    html += `<div class="notice">No source samples were returned for this cluster.</div>`;
-  } else {
-    samples.slice(0,12).forEach((x,i)=>{
-      html += `
-        <div class="angle">
-          <strong>${i+1}. ${esc(x.title || x.text || "Signal")}</strong>
-          <div class="meta">
-            ${esc(x.source || "Live source")}
-            ${x.url ? ` · <a href="${esc(x.url)}" target="_blank" rel="noopener">open source</a>` : ""}
-          </div>
-          ${x.text ? `<div class="meta" style="margin-top:6px">${esc(x.text)}</div>` : ""}
-        </div>`;
-    });
-  }
-
-  document.getElementById("content").innerHTML = html;
-}
-
-function esc(s){
-  return String(s ?? "").replace(/[&<>"']/g, c => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[c]));
-}
-
-async function localSignalEngine(ctx){
-  const response = await fetch("/api/scan", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(ctx)
+    html+=`</div></section>`;
   });
-  if(!response.ok){
-    const msg = await response.text();
-    throw new Error(msg || "Signal API failed");
-  }
-  return await response.json();
+  html+=`</div><div class="toolbar"><b>Raw signal feed</b><span class="spacer"></span><span class="smalltext">${d.signals.length} currently held</span></div>`;
+  html+=(d.signals||[]).slice(0,25).map(x=>`<div class="signal"><div class="signalTitle">${esc(x.title||x.text||'Signal')}</div><div class="meta">${esc(x.source||'Source')} · ${esc(x.publishedAt||'')} ${x.url?`· <a href="${esc(x.url)}" target="_blank" rel="noopener">open</a>`:''}</div>${x.text&&x.text!==x.title?`<div class="meta">${esc(x.text.slice(0,300))}</div>`:''}</div>`).join("");
+  if(d.nextBatch!==null&&!d.exhausted) html+=`<button class="btn load" id="load" onclick="loadMore()">Load More Live Signals + Rebuild Map</button>`;
+  else html+=`<div class="notice" style="margin-top:14px">No more predefined discovery probes in this prototype batch set. The source pool shown above is the evidence actually returned.</div>`;
+  $("content").innerHTML=html;
 }
-
-function renderLiveScan(r){
-  const html = `
-    <div class="crumb">${r.path.map((x,i)=>`<span onclick="jump(${i})">${esc(x)}</span>`).join(" › ")}</div>
-    <h1>🔥 Live Signal Scan</h1>
-    <div class="desc">
-      <b>${esc(r.node)}</b> — signal workspace. The navigation path is preserved while the signal layer is explored.
-    </div>
-
-    <div class="kpi">
-      <div><b>${esc(r.signalStrength)}</b><span>SIGNAL STRENGTH</span></div>
-      <div><b>${esc(r.bic.primary)}</b><span>PRIMARY BIC</span></div>
-    </div>
-
-    <div class="notice"><b>${esc(r.sourceStatus || "LIVE SOURCE SCAN")}</b><br>Sources: ${(r.sources||[]).map(s=>esc(s)).join(" · ")}<br>Scanned: ${esc(r.timestamp || "")}<br>
-      This Live source scan. Every source is labeled and timestamps are shown. Signal strength is a derived heuristic, not a search-volume claim.
-    </div>
-
-    <div class="toolbar"><b>People Questions</b><span class="spacer"></span></div>
-    ${r.peopleQuestions.map((x,i)=>`<div class="angle"><strong>${i+1}. ${esc(x)}</strong></div>`).join("")}
-
-    <div class="toolbar"><b>Discussion / Curiosity Signals</b><span class="spacer"></span></div>
-    ${r.discussions.map(x=>`<div class="angle"><div class="meta">${esc(x)}</div></div>`).join("")}
-
-    <div class="toolbar"><b>Observed Behaviour Buckets</b><span class="spacer"></span></div>
-    <div class="badges">${r.behaviours.map(x=>`<span class="badge">${esc(x)}</span>`).join("")}</div>
-
-    <div class="toolbar"><b>BIC Ecosystem Connection</b><span class="spacer"></span></div>
-    <div class="angle">
-      <strong>${esc(r.bic.primary)}</strong>
-      <div class="meta">Relationship: ${esc(r.bic.relationship)}</div>
-      ${r.bic.connected.length ? `<div class="badges">${r.bic.connected.map(x=>`<span class="badge fit">${esc(x)}</span>`).join("")}</div>` : ""}
-    </div>
-
-    <div class="toolbar"><b>Potential MEDIMANCH Angles</b><span class="spacer"></span></div>
-    ${r.angles.map((a,i)=>`
-      <div class="angle">
-        <button class="btn secondary small save" onclick="save({type:'live-angle',path:${JSON.stringify(r.path.join(" › "))},angle:${JSON.stringify(a[0])},title:${JSON.stringify(a[1])}})">★</button>
-        <strong>${i+1}. ${esc(a[0])}</strong>
-        <div class="meta" style="margin-top:5px">${esc(a[1])}</div>
-      </div>`).join("")}
-
-    <div class="notice">Next connection point: replace <b>localSignalEngine()</b> with a backend API. The UI contract can remain unchanged.</div>
-  `;
-  document.getElementById("content").innerHTML=html;
-  renderSaved();
+function toggle(id){const el=$(id);if(el)el.style.display=el.style.display==='none'?'block':'none'}
+async function discover(batch=0){
+  const keyword=$("kw").value.trim(); if(!keyword)return;
+  if(batch===0){state.keyword=keyword;state.signals=[];state.tree=[];state.nextBatch=0;state.exhausted=false;setPath([keyword]);}
+  $("content").innerHTML=`<div class="empty">Collecting live signals for <b>${esc(keyword)}</b>…</div>`;
+  $("go").disabled=true;
+  try{
+    const r=await fetch('/api/discover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({keyword:state.keyword,batch,signals:state.signals})});
+    if(!r.ok)throw new Error(await r.text());
+    const d=await r.json();
+    const existing=new Map(state.signals.map(x=>[x.id,x]));
+    (d.signals||[]).forEach(x=>existing.set(x.id||`${x.source}|${x.title}|${x.text}`,x));
+    state.signals=[...existing.values()];
+    state.tree=d.tree||[];state.nextBatch=d.nextBatch;state.exhausted=d.exhausted;
+    renderTree();
+  }catch(e){$("content").innerHTML=`<div class="notice"><b>Discovery error</b><br>${esc(e.message)}</div>`}
+  finally{$("go").disabled=false}
 }
-
-function saveCurrent(){if(!current.length)return;save({type:"cluster",path:current.join(" › ")});}
-function saveAngle(i){save({type:"angle",path:current.join(" › "),angle:currentNode.angles[i][0],title:currentNode.angles[i].slice(2).join(" / ")});}
-function save(x){saved=saved.filter(y=>JSON.stringify(y)!==JSON.stringify(x));saved.unshift(x);localStorage.setItem("mm_saved",JSON.stringify(saved));renderSaved()}
-function renderSaved(){let e=document.getElementById("saved");if(!saved.length){e.innerHTML='<div class="empty">Nothing saved yet.</div>';return}e.innerHTML=saved.slice(0,12).map((x,i)=>`<div class="saved-item"><b>${x.type==="cluster"?"★ ":"★ "}${x.path}</b>${x.angle?`<br>${x.angle}: ${x.title}`:""}<button class="btn secondary small" style="float:right" onclick="removeSaved(${i})">×</button></div>`).join("")}
-function removeSaved(i){saved.splice(i,1);localStorage.setItem("mm_saved",JSON.stringify(saved));renderSaved()}
-function showSaved(){document.getElementById("content").innerHTML='<h1>Saved Shortlist</h1><div class="desc">Your saved territories, clusters and angles.</div>'+saved.map(x=>`<div class="angle"><b>${x.path}</b>${x.angle?`<div class="meta">${x.angle} — ${x.title}</div>`:""}</div>`).join("")}
-renderTree();goHome();
+function loadMore(){if(state.nextBatch!==null)discover(state.nextBatch)}
+function openLeaf(path,leaf){state.selected={path,leaf};setPath(path);let html=`<div class="crumb">${pathText(path)}</div><h1 class="h1">${esc(leaf.name)}</h1><div class="desc">This is the final angle layer. The titles below are content opportunities derived from the supporting live signals.</div><div class="kpis"><div class="kpi"><b>${leaf.items||0}</b><span>SUPPORTING SIGNALS</span></div><div class="kpi"><b>${esc(leaf.signal||'')}</b><span>SIGNAL PATTERN</span></div></div>`;
+  html+=`<div class="toolbar"><b>Final content titles</b><span class="spacer"></span><button class="btn secondary small" onclick="scanLeaf()">Scan node again</button></div>`;
+  (leaf.titles||[]).forEach((t,i)=>html+=`<div class="titleBox"><b>${i+1}. ${esc(t)}</b></div>`);
+  html+=`<div class="toolbar"><b>Questions behind this angle</b></div>`;
+  (leaf.questions||[]).forEach((q,i)=>html+=`<div class="signal"><div class="signalTitle">${i+1}. ${esc(q)}</div></div>`);
+  html+=`<div class="toolbar"><b>Evidence behind this angle</b></div>`;
+  (leaf.samples||[]).forEach(x=>html+=`<div class="signal"><div class="signalTitle">${esc(x.title||x.text||'Signal')}</div><div class="meta">${esc(x.source||'Source')} ${x.url?`· <a href="${esc(x.url)}" target="_blank" rel="noopener">open source</a>`:''}</div>${x.text?`<div class="meta">${esc(x.text.slice(0,450))}</div>`:''}</div>`);
+  $("content").innerHTML=html;}
+async function scanLeaf(){if(!state.selected)return;const leaf=state.selected.leaf;$("content").innerHTML=`<div class="empty">Re-scanning ${esc(leaf.name)}…</div>`;try{const r=await fetch('/api/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({keyword:state.keyword,node:leaf.name,path:state.selected.path})});if(!r.ok)throw new Error(await r.text());const d=await r.json();let html=`<div class="crumb">${pathText(d.path)}</div><h1 class="h1">🔥 Live node scan</h1><div class="kpis"><div class="kpi"><b>${esc(d.signalStrength)}</b><span>SIGNAL</span></div><div class="kpi"><b>${d.rawCounts.total||0}</b><span>NEW SIGNALS</span></div></div><div class="toolbar"><b>People questions</b></div>`+(d.peopleQuestions||[]).map((q,i)=>`<div class="signal"><div class="signalTitle">${i+1}. ${esc(q)}</div></div>`).join("")+`<div class="toolbar"><b>Discussion signals</b></div>`+(d.discussions||[]).map(x=>`<div class="signal"><div class="signalTitle">${esc(x)}</div></div>`).join("")+`<div class="toolbar"><button class="btn secondary small" onclick="renderTree()">← Back to map</button></div>`;$("content").innerHTML=html}catch(e){$("content").innerHTML=`<div class="notice"><b>Scan error</b><br>${esc(e.message)}</div>`}}
+$("go").addEventListener('click',()=>discover(0));$("kw").addEventListener('keydown',e=>{if(e.key==='Enter')discover(0)});
 </script>
-</body>
-</html>
+</body></html>
