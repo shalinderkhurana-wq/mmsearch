@@ -122,7 +122,17 @@ function renderTree(){
 function pathHTML(){
  return current.length?current.map((x,i)=>`<span onclick="jump(${i})">${x}</span>`).join("  ›  "):"Home";
 }
-function jump(i){let p=current.slice(0,i+1);let n=DATA[p[0]];for(let j=1;j<p.length;j++)n=n.children[p[j]];openNode(p,n)}
+function jump(i){
+  const p=current.slice(0,i+1);
+  if(currentNode && currentNode.name && !DATA[p[0]]){
+    if(i===0){ goHome(); }
+    return;
+  }
+  let n=DATA[p[0]];
+  if(!n){goHome();return;}
+  for(let j=1;j<p.length;j++) n=n.children[p[j]];
+  openNode(p,n);
+}
 function openNode(path,n){
  current=path;currentNode=n;
  document.getElementById("pathbox").innerHTML=pathHTML();
@@ -166,6 +176,116 @@ async function discover(){
   }
 }
 
+
+
+function renderDiscovery(d){
+  const cats = d.categories || [];
+  document.getElementById("pathbox").innerHTML =
+    `<span onclick="goHome()">Home</span> › ${esc(d.keyword)}`;
+
+  let html = `
+    <div class="crumb"><span onclick="goHome()">Home</span> › ${esc(d.keyword)}</div>
+    <h1>🔎 ${esc(d.keyword)}</h1>
+    <div class="desc">
+      <b>LIVE KEYWORD DISCOVERY</b> — clusters below are derived from current returned source material.
+      They are not preloaded topics.
+    </div>
+
+    <div class="kpi">
+      <div><b>${esc(d.signalStrength || "EARLY")}</b><span>DISCOVERY SIGNAL</span></div>
+      <div><b>${esc(String(d.rawCounts?.total || 0))}</b><span>RAW ITEMS SCANNED</span></div>
+    </div>
+
+    <div class="notice">
+      <b>LIVE SOURCES:</b> ${(d.sources || []).map(esc).join(" · ")}<br>
+      <b>SCANNED:</b> ${esc(d.timestamp || "")}
+    </div>
+
+    <div class="toolbar">
+      <b>Live Territory Clusters</b>
+      <span class="spacer"></span>
+    </div>
+
+    <div class="cards">
+  `;
+
+  if(!cats.length){
+    html += `<div class="notice">No meaningful live clusters were returned for this keyword. Try a broader term.</div>`;
+  } else {
+    cats.forEach((c,i)=>{
+      html += `
+        <div class="card" onclick='openDiscovered(${JSON.stringify([d.keyword,c.name])},${JSON.stringify(c)})'>
+          <h3>${i+1}. ${esc(c.name)}</h3>
+          <div class="meta">${esc(c.reason || "Cluster derived from live source material")}</div>
+          <div class="badges">
+            <span class="badge hot">${esc(c.signal || "DISCOVERY")}</span>
+            <span class="badge fit">${esc(String(c.items || 0))} signals</span>
+          </div>
+        </div>`;
+    });
+  }
+
+  html += `</div>
+    <div class="toolbar">
+      <b>Real question-shaped signals found</b>
+      <span class="spacer"></span>
+    </div>`;
+
+  const qs = d.questions || [];
+  html += qs.length
+    ? qs.slice(0,12).map((x,i)=>`<div class="angle"><strong>${i+1}. ${esc(x)}</strong></div>`).join("")
+    : `<div class="notice">No question-shaped signals were extracted from the returned material.</div>`;
+
+  document.getElementById("content").innerHTML = html;
+}
+
+function openDiscovered(path,node){
+  current = path;
+  currentNode = node;
+  document.getElementById("pathbox").innerHTML =
+    path.map(x=>esc(x)).join(" › ");
+
+  let html = `
+    <div class="crumb">${path.map(x=>esc(x)).join(" › ")}</div>
+    <h1>${esc(node.name)}</h1>
+    <div class="desc">${esc(node.reason || "Live-discovered territory")}</div>
+
+    <div class="kpi">
+      <div><b>${esc(node.signal || "DISCOVERY")}</b><span>SIGNAL</span></div>
+      <div><b>${esc(String(node.items || 0))}</b><span>RELATED ITEMS</span></div>
+    </div>
+
+    <div class="toolbar">
+      <b>🔥 Scan this territory</b>
+      <span class="spacer"></span>
+      <button class="btn small" onclick="scanNode()">🔥 Scan live signals</button>
+    </div>
+
+    <div class="toolbar">
+      <b>Real source material</b>
+      <span class="spacer"></span>
+    </div>
+  `;
+
+  const samples = node.samples || [];
+  if(!samples.length){
+    html += `<div class="notice">No source samples were returned for this cluster.</div>`;
+  } else {
+    samples.slice(0,12).forEach((x,i)=>{
+      html += `
+        <div class="angle">
+          <strong>${i+1}. ${esc(x.title || x.text || "Signal")}</strong>
+          <div class="meta">
+            ${esc(x.source || "Live source")}
+            ${x.url ? ` · <a href="${esc(x.url)}" target="_blank" rel="noopener">open source</a>` : ""}
+          </div>
+          ${x.text ? `<div class="meta" style="margin-top:6px">${esc(x.text)}</div>` : ""}
+        </div>`;
+    });
+  }
+
+  document.getElementById("content").innerHTML = html;
+}
 
 function esc(s){
   return String(s ?? "").replace(/[&<>"']/g, c => ({
