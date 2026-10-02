@@ -29,7 +29,7 @@ h1{font-size:26px;margin:4px 0 7px}.desc{color:var(--muted);font-size:14px;max-w
 </style>
 </head>
 <body>
-<header><div class="logo">MEDIMANCH</div><div class="sub">VIRAL TERRITORY EXPLORER · PROTOTYPE V0.1</div></header>
+<header><div class="logo">MEDIMANCH</div><div class="sub">VIRAL TERRITORY EXPLORER · LIVE SIGNAL V1</div></header>
 <div class="layout">
 <aside class="left">
   <div class="search"><input id="kw" placeholder="Enter: gut, liver, sleep..."><button class="btn small" onclick="discover()">Go</button></div>
@@ -46,7 +46,7 @@ h1{font-size:26px;margin:4px 0 7px}.desc{color:var(--muted);font-size:14px;max-w
   <div class="section-title">Current Path</div><div id="pathbox" class="meta">Home</div>
   <div class="section-title">Saved Shortlist</div>
   <div id="saved"></div>
-  <div class="notice">Prototype mode: hierarchy and example viral angles are preloaded so you can test the navigation. Live internet scanning can be connected after the UX is approved.</div>
+  <div class="notice">LIVE ENGINE: the selected territory is sent to the backend for current-source discovery. Preloaded hierarchy is navigation only; scan results come from /api/scan.</div>
 </aside>
 </div>
 <script>
@@ -152,8 +152,7 @@ async function scanNode(){
   const path = current.slice();
   const nodeName = path[path.length-1];
 
-  // Local demo engine. The response contract is intentionally API-shaped,
-  // so a real backend can replace this call later without changing the UI.
+  // Live backend scan. No local demo fallback.
   try {
     const result = await localSignalEngine({
       path,
