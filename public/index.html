@@ -12,7 +12,7 @@
 </head>
 <body>
 <header class="top">
-  <div class="logo">MEDIMANCH</div><span class="badge">RESEARCH NAVIGATOR V5.4</span>
+  <div class="logo">MEDIMANCH</div><span class="badge">RESEARCH NAVIGATOR V5.6</span>
   <div class="search"><input id="keyword" placeholder="My keyword: Gut Health, Kidney, Tai Chi, Omega-3…"/><button class="btn primary" onclick="buildMap()">EXPLORE MY KEYWORD</button></div>
   <button class="btn teal" onclick="openRadar()">🔥 SIGNAL RADAR</button>
   <div class="health" id="health">checking…</div>
@@ -23,7 +23,7 @@
   <aside class="right"><h3>CURRENT PATH</h3><div id="path" class="pathbox">Home</div><h3>SAVED RESEARCH</h3><div id="saved"></div><h3 style="margin-top:20px">SAVED CONTENT IP</h3><div id="savedIP"></div></aside>
 </div>
 <script>
-const state={map:null,node:null,result:null,radar:null,radarHistory:JSON.parse(localStorage.getItem('mm_radar_history_v55')||'[]'),saved:JSON.parse(localStorage.getItem('mm_saved_v5')||'[]'),savedIP:JSON.parse(localStorage.getItem('mm_saved_ip_v5')||'[]'),busy:false};
+const state={map:null,node:null,result:null,radar:null,radarHistory:JSON.parse(localStorage.getItem('mm_radar_history_v56')||'[]'),saved:JSON.parse(localStorage.getItem('mm_saved_v5')||'[]'),savedIP:JSON.parse(localStorage.getItem('mm_saved_ip_v5')||'[]'),busy:false};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 function persist(){localStorage.setItem('mm_saved_v5',JSON.stringify(state.saved));localStorage.setItem('mm_saved_ip_v5',JSON.stringify(state.savedIP));renderSaved()}
@@ -67,7 +67,7 @@ async function research(mode){if(!state.node||state.busy)return;setBusy(true,mod
 function openRadar(){
  state.node=null;state.result=null;$('crumb').textContent='Signal Radar';$('path').textContent='Signal Radar';
  const round=state.radarHistory.length+1;
- $('main').innerHTML=`<section class="hero"><div><div class="node-type">OPTIONAL DISCOVERY DOOR · V5.5 NICHE-LOCKED RADAR CLOUD</div><h1>MEDIMANCH Signal Radar</h1><p>Radar is now locked to the MEDIMANCH health/wellness niche for an Indian audience. Every scan changes its discovery lens, suppresses generic/unrelated news, remembers previous signals and moves into specific body mechanisms, behaviours, questions, visual opportunities, Indian practices and under-covered wellness signals.</p></div></section><div class="card" style="margin-top:14px"><div class="radarHeader"><div><h2 style="margin:0">FAST DISCOVERY ROUND <span class="tag">#${round}</span></h2><div class="small">Sources: YouTube, Reddit public discovery and Google News RSS. This is signal discovery, not Google Trends search-volume measurement.</div></div><div class="radarControls"><button class="btn primary" onclick="runRadar()">FAST SCAN ROUND ${round}</button><button class="btn" onclick="resetRadar()">RESET RADAR HISTORY</button></div></div><div id="radarResults" class="radarGrid"><div class="empty" style="grid-column:1/-1"><b>Round ${round} is ready.</b><br>Each round intentionally changes the discovery lens. Previously surfaced signals will be excluded where possible.</div></div></div>`;
+ $('main').innerHTML=`<section class="hero"><div><div class="node-type">OPTIONAL DISCOVERY DOOR · V5.6 SIGNAL KEYWORD RADAR</div><h1>MEDIMANCH Signal Radar</h1><p>Radar is a dedicated <b>signal-keyword discovery engine</b> for MEDIMANCH. It is not a general health-news scanner. Each scan searches for specific emerging behaviours, named practices, wellness vocabulary, biohacks, routines, food/hydration habits and body-optimisation ideas that people are actually discussing or trying. The goal is to give you a large saved-keyword pool from which you choose your next research subject.</p></div></section><div class="card" style="margin-top:14px"><div class="radarHeader"><div><h2 style="margin:0">FAST DISCOVERY ROUND <span class="tag">#${round}</span></h2><div class="small">Sources: YouTube, Reddit public discovery and Google News RSS. This is signal discovery, not Google Trends search-volume measurement.</div></div><div class="radarControls"><button class="btn primary" onclick="runRadar()">FAST SCAN ROUND ${round}</button><button class="btn" onclick="resetRadar()">RESET RADAR HISTORY</button></div></div><div id="radarResults" class="radarGrid"><div class="empty" style="grid-column:1/-1"><b>Round ${round} is ready.</b><br>Each round intentionally changes the discovery lens. Previously surfaced signals will be excluded where possible.</div></div></div>`;
 }
 async function runRadar(){
  if(state.busy)return;
@@ -84,11 +84,11 @@ async function runRadar(){
   const result=j.result||{};
   const historyEntry={round,mode:j.mode?.name||result.mode||`Round ${round}`,items:arr(result.items),rawTitles:arr(j.rawSignals).map(x=>x.title).filter(Boolean),generatedAt:j.generatedAt,queries:j.queries||[]};
   state.radarHistory.push(historyEntry);state.radarHistory=state.radarHistory.slice(-30);
-  state.radar=result;localStorage.setItem('mm_radar_history_v55',JSON.stringify(state.radarHistory));
+  state.radar=result;localStorage.setItem('mm_radar_history_v56',JSON.stringify(state.radarHistory));
   renderRadar(result,j.generatedAt,j.mode,round,historyEntry);
  }catch(e){notice(e.message,true)}finally{setBusy(false)}
 }
-function resetRadar(){if(!confirm('Reset all Radar discovery history? This only resets Radar memory in this browser.'))return;state.radarHistory=[];state.radar=null;localStorage.removeItem('mm_radar_history_v55');openRadar();}
+function resetRadar(){if(!confirm('Reset all Radar discovery history? This only resets Radar memory in this browser.'))return;state.radarHistory=[];state.radar=null;localStorage.removeItem('mm_radar_history_v56');openRadar();}
 function renderRadar(r,generatedAt,mode,round,entry){
  const items=arr(r.items).filter(x=>x&&x.keyword);
  const modeName=mode?.name||r.mode||entry?.mode||'FRESH DISCOVERY';
@@ -104,17 +104,17 @@ function renderRadar(r,generatedAt,mode,round,entry){
  <div style="grid-column:1/-1">
    <span class="modePill">ROUND ${round}</span><span class="modePill">${esc(modeName)}</span>
    <span class="modePill">${items.length} DISCOVERY CHOICES</span>
-   <div class="radarCount">Target: 75 · acceptable range: 60–100 · fast bounded source scan + one compact AI pass; every scan changes the discovery lens.</div>
+   <div class="radarCount">Target: 75 · minimum useful board: 50 · maximum: 100 · specific signal keywords only; no generic filler. Each scan changes the discovery family.</div>
    <div class="small" style="margin-top:8px">${esc(modeDesc)} ${esc(generatedAt||'')}</div>
  </div>
  <div class="card full">
-   <h2>MEDIMANCH DISCOVERY CLOUD — CLICK ANY KEYWORD</h2>
-   <p class="sectionNote">This is the broad choice board. Bigger text means a stronger evidence-backed signal, not a claim of Google search volume. Use it to spot the one idea that makes you want to drill deeper.</p>
+   <h2>MEDIMANCH SIGNAL KEYWORD CLOUD — CLICK ANY TERM</h2>
+   <p class="sectionNote">This is your research keyword pool. Bigger text means stronger signal evidence in the scanned sources—not Google Trends volume. Look for memorable, specific terms such as a named behaviour, practice, ritual, technique, biohack or emerging wellness phrase. Click one to turn it into a full MEDIMANCH research map.</p>
    <div class="radarCloud">${cloud||'<div class="empty" style="width:100%">No candidates returned. Run another fresh round.</div>'}</div>
  </div>
  <div class="card full radarStrong">
-   <h2>STRONGEST SIGNALS — TOP ${strong.length}</h2>
-   <p class="sectionNote">Only the strongest candidates are expanded here. The full 60–100 choice cloud remains above so Radar works as a discovery board rather than a short list.</p>
+   <h2>STRONGEST SIGNAL KEYWORDS — TOP ${strong.length}</h2>
+   <p class="sectionNote">Only the strongest specific terms are expanded here. The cloud above is the main discovery board; these cards help you understand why a term is worth investigating.</p>
    <div class="radarGrid">
    ${strong.map((x,i)=>`<div class="radarItem"><div class="kw">${esc(x.keyword)}</div><span class="signalScore">Signal ${Number(x.signalStrength||0)}/100</span><span class="tag">${esc(x.signalType||'SIGNAL')}</span><span class="tag">${esc(x.novelty||'')}</span><div class="why"><b>Why now:</b> ${esc(x.whyNow||'')}</div><div class="why"><b>Human question:</b> ${esc(x.humanQuestion||'')}</div><div class="why"><b>Visual potential:</b> ${esc(x.visualPotential||'')}</div><div class="why"><b>Evidence:</b> ${esc(x.evidence||'')}</div><div class="sourceLine">Sources: ${esc((x.sourceMix||[]).join(' · '))} · Evidence count: ${esc(x.evidenceCount||'—')} · India: ${esc(x.indiaRelevance||'')}</div><div class="toolbar"><button class="btn primary" onclick='startFromRadar(${JSON.stringify(x.keyword)})'>EXPLORE THIS</button></div></div>`).join('')||'<div class="empty" style="grid-column:1/-1">No strong candidates returned.</div>'}
    </div>
