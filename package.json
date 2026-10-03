@@ -1,0 +1,12 @@
+{
+  "name": "medimanch-research-navigator-v5.8",
+  "version": "5.8.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
