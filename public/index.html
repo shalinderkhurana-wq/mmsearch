@@ -67,7 +67,7 @@ async function research(mode){if(!state.node||state.busy)return;setBusy(true,mod
 function openRadar(){
  state.node=null;state.result=null;$('crumb').textContent='Signal Radar';$('path').textContent='Signal Radar';
  const round=state.radarHistory.length+1;
- $('main').innerHTML=`<section class="hero"><div><div class="node-type">OPTIONAL DISCOVERY DOOR · V5.2 RADAR DISCOVERY CLOUD</div><h1>MEDIMANCH Signal Radar</h1><p>Radar is now a multi-round discovery engine. Every scan changes its discovery lens, remembers what it already surfaced, suppresses repeats and deliberately moves into new human questions, behaviours, visual opportunities, India context, cross-topic mutations and under-covered signals.</p></div></section><div class="card" style="margin-top:14px"><div class="radarHeader"><div><h2 style="margin:0">FRESH DISCOVERY ROUND <span class="tag">#${round}</span></h2><div class="small">Sources: YouTube, Reddit public discovery and Google News RSS. This is signal discovery, not Google Trends search-volume measurement.</div></div><div class="radarControls"><button class="btn primary" onclick="runRadar()">SCAN FRESH ROUND ${round}</button><button class="btn" onclick="resetRadar()">RESET RADAR HISTORY</button></div></div><div id="radarResults" class="radarGrid"><div class="empty" style="grid-column:1/-1"><b>Round ${round} is ready.</b><br>Each round intentionally changes the discovery lens. Previously surfaced signals will be excluded where possible.</div></div></div>`;
+ $('main').innerHTML=`<section class="hero"><div><div class="node-type">OPTIONAL DISCOVERY DOOR · V5.3 FAST RADAR CLOUD</div><h1>MEDIMANCH Signal Radar</h1><p>Radar is now a multi-round, fast discovery engine. Every scan changes its discovery lens, remembers what it already surfaced, suppresses repeats and deliberately moves into new human questions, behaviours, visual opportunities, India context, cross-topic mutations and under-covered signals.</p></div></section><div class="card" style="margin-top:14px"><div class="radarHeader"><div><h2 style="margin:0">FAST DISCOVERY ROUND <span class="tag">#${round}</span></h2><div class="small">Sources: YouTube, Reddit public discovery and Google News RSS. This is signal discovery, not Google Trends search-volume measurement.</div></div><div class="radarControls"><button class="btn primary" onclick="runRadar()">FAST SCAN ROUND ${round}</button><button class="btn" onclick="resetRadar()">RESET RADAR HISTORY</button></div></div><div id="radarResults" class="radarGrid"><div class="empty" style="grid-column:1/-1"><b>Round ${round} is ready.</b><br>Each round intentionally changes the discovery lens. Previously surfaced signals will be excluded where possible.</div></div></div>`;
 }
 async function runRadar(){
  if(state.busy)return;
@@ -75,7 +75,7 @@ async function runRadar(){
  const seenKeywords=state.radarHistory.flatMap(x=>arr(x.items).map(i=>i.keyword)).filter(Boolean).slice(-180);
  const seenTitles=state.radarHistory.flatMap(x=>arr(x.rawTitles)).filter(Boolean).slice(-300);
  const recentItems=state.radarHistory.flatMap(x=>arr(x.items)).slice(-40);
- setBusy(true,`Running fresh discovery round ${round} — changing lens and excluding previous signals…`);
+ setBusy(true,`Fast Radar round ${round}: collecting fresh signals, then building the discovery cloud…`);
  try{
   const r=await fetch('/api/radar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({round,seenKeywords,seenTitles,recentItems})});
   const j=await r.json();if(!r.ok)throw new Error(j.error||'Radar failed');
@@ -102,7 +102,7 @@ function renderRadar(r,generatedAt,mode,round,entry){
  <div style="grid-column:1/-1">
    <span class="modePill">ROUND ${round}</span><span class="modePill">${esc(modeName)}</span>
    <span class="modePill">${items.length} DISCOVERY CHOICES</span>
-   <div class="radarCount">Target: 75 · acceptable range: 60–100 · every scan changes the discovery lens and excludes previous Radar history where possible.</div>
+   <div class="radarCount">Target: 75 · acceptable range: 60–100 · fast bounded source scan + one compact AI pass; every scan changes the discovery lens.</div>
    <div class="small" style="margin-top:8px">${esc(modeDesc)} ${esc(generatedAt||'')}</div>
  </div>
  <div class="card full">
