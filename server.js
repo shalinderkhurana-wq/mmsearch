@@ -12,9 +12,10 @@ app.use(express.static('public'));
 const clean = (s = '') => String(s).replace(/\s+/g, ' ').trim();
 const unique = (arr = []) => [...new Map(arr.filter(Boolean).map(x => [String(x).toLowerCase(), x])).values()];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+const withTimeout = (ms) => AbortSignal.timeout ? AbortSignal.timeout(ms) : undefined;
 
 async function fetchJson(url, options = {}) {
-  const r = await fetch(url, options);
+  const r = await fetch(url, { ...options, signal: options.signal || withTimeout(12000) });
   if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
   return r.json();
 }
@@ -39,7 +40,7 @@ async function youtubeSearch(q, maxResults = 12) {
 
 async function redditSearch(q, limit = 15) {
   const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(q)}&sort=relevance&t=month&limit=${limit}`;
-  const r = await fetch(url, { headers: { 'User-Agent': 'MEDIMANCH-Research-Navigator/5.0' } });
+  const r = await fetch(url, { headers: { 'User-Agent': 'MEDIMANCH-Research-Navigator/5.3' }, signal: withTimeout(8000) });
   if (!r.ok) return [];
   const data = await r.json();
   return (data?.data?.children || []).map(x => ({
@@ -51,7 +52,7 @@ async function redditSearch(q, limit = 15) {
 
 async function newsRss(q, limit = 15) {
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-IN&gl=IN&ceid=IN:en`;
-  const r = await fetch(url, { headers: { 'User-Agent': 'MEDIMANCH-Research-Navigator/5.0' } });
+  const r = await fetch(url, { headers: { 'User-Agent': 'MEDIMANCH-Research-Navigator/5.3' }, signal: withTimeout(8000) });
   if (!r.ok) return [];
   const xml = await r.text();
   const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, limit).map(m => m[1]);
@@ -62,15 +63,18 @@ async function newsRss(q, limit = 15) {
   return items.map(b => ({ source: 'Google News', type: 'news', title: tag(b, 'title'), text: tag(b, 'description'), published: tag(b, 'pubDate'), url: tag(b, 'link') })).filter(x => x.title);
 }
 
-async function collectSignals(queries, perSource = 8) {
-  const qs = unique(queries).slice(0, 24);
+async function collectSignals(queries, perSource = 5) {
+  // Fast Radar collector: bounded parallel batches instead of sequentially waiting
+  // for every query. This keeps a large discovery board responsive.
+  const qs = unique(queries).slice(0, 12);
   const out = [];
-  for (const q of qs) {
-    const [yt, rd, nw] = await Promise.allSettled([youtubeSearch(q, perSource), redditSearch(q, perSource), newsRss(q, perSource)]);
-    if (yt.status === 'fulfilled') out.push(...yt.value);
-    if (rd.status === 'fulfilled') out.push(...rd.value);
-    if (nw.status === 'fulfilled') out.push(...nw.value);
-    await sleep(35);
+  const batchSize = 6;
+  for (let i = 0; i < qs.length; i += batchSize) {
+    const batch = qs.slice(i, i + batchSize);
+    const results = await Promise.allSettled(batch.flatMap(q => [
+      youtubeSearch(q, perSource), redditSearch(q, perSource), newsRss(q, perSource)
+    ]));
+    for (const r of results) if (r.status === 'fulfilled') out.push(...r.value);
   }
   const seen = new Set();
   return out.filter(x => {
@@ -78,7 +82,7 @@ async function collectSignals(queries, perSource = 8) {
     if (!x.title || seen.has(k)) return false;
     seen.add(k);
     return true;
-  }).slice(0, 600);
+  }).slice(0, 420);
 }
 
 async function liveSignals(node, extraQueries = []) {
@@ -242,40 +246,48 @@ app.post('/api/radar', async (req, res) => {
     const extra = Array.isArray(req.body?.extraQueries) ? req.body.extraQueries.map(clean).filter(Boolean) : [];
     const plan = radarQueryPlan(round, seenKeywords, recentItems);
     const queries = unique([...plan.queries, ...extra]).slice(0, 24);
-    const raw = await collectSignals(queries, 6);
+    const raw = await collectSignals(queries, 5);
     const seenKeywordSet = new Set(seenKeywords.map(x => x.toLowerCase()));
     const seenTitleSet = new Set(seenTitles.map(x => x.toLowerCase()));
     const freshRaw = raw.filter(x => {
       const title = clean(x.title).toLowerCase();
       return title && !seenTitleSet.has(title) && !seenKeywordSet.has(title);
     });
+
+    // FAST CLOUD: one compact LLM pass. We deliberately avoid the previous
+    // second expansion pass, which doubled latency and often produced little new signal.
     const result = await llm(
-      `You are running ROUND ${round} of the OPTIONAL MEDIMANCH SIGNAL DISCOVERY ENGINE. This round must behave like a large Google-Trends-style discovery board, but using the live source material supplied here. The current discovery lens is: ${plan.mode.name}. Lens purpose: ${plan.mode.desc}.\n\nNON-NEGOTIABLE OUTPUT SIZE: return 75 UNIQUE discovery candidates whenever the evidence pool supports it. Never stop at 10, 20 or 30. Acceptable range is 60-100; target 75. Every candidate must be meaningfully different, not a synonym or tiny wording variation.\n\nDIVERSITY REQUIREMENT: distribute candidates across multiple signal families: human questions, behaviours, practices, food/ingredients, tests/measurements, body mechanisms, creator movements, public discussions, controversies/disagreements, traditional practices, Indian household behaviour, new vocabulary, visual opportunities, cross-topic connections, and niche/under-covered observations. Do not let one generic subject dominate the board.\n\nSTRONG-SIGNAL REQUIREMENT: prefer candidates with concrete evidence in the supplied material. Score each candidate with signalStrength 0-100 using source diversity, repetition across independent results, freshness, specificity and researchability. Also return evidenceCount, sourceCount, freshness, and specificity. Do not equate popularity with efficacy. Do not invent search volume.\n\nGENERIC FILTER: reject or mutate generic umbrella terms such as 'gut health', 'weight loss', 'protein', 'detox', 'sleep', 'hydration' unless the evidence supports a specific new behaviour, question, mechanism, practice, comparison, test, controversy or vocabulary item underneath them.\n\nFRESHNESS: avoid previously surfaced keywords and evidence titles unless materially new evidence supports a clearly different angle. Use previous results as mutation seeds, not as items to repeat.\n\nReturn JSON only in this exact shape: {"asOf":"...","round":${round},"mode":"${plan.mode.name}","items":[{"keyword":"...","signalType":"SEARCH-LIKE|HUMAN-QUESTION|CREATOR-MOVEMENT|PUBLIC-DISCUSSION|NEW-VOCABULARY|CROSS-TOPIC|BEHAVIOUR|VISUAL-OPPORTUNITY|NEWS-MOVEMENT|MECHANISM|PRACTICE|TEST|CONTROVERSY","signalStrength":0,"evidenceCount":0,"sourceCount":0,"freshness":"HIGH|MEDIUM|LOW","specificity":"HIGH|MEDIUM|LOW","whyNow":"...","evidence":"...","sourceMix":["YouTube","Reddit","Google News"],"indiaRelevance":"...","novelty":"LOW|MEDIUM|HIGH|VERY HIGH","researchPotential":"...","visualPotential":"...","humanQuestion":"...","suggestedStartQuery":"..."}],"caveats":["..."]}.\n\nDo not claim Google search acceleration unless Google Trends/search data is actually present. Keep premium/course potential OUT of Radar. This is discovery only.`,
-      `DISCOVERY LENS: ${plan.mode.name}\nQUERY PLAN: ${JSON.stringify(queries)}\nPREVIOUSLY SEEN KEYWORDS: ${JSON.stringify(seenKeywords.slice(-180))}\nRECENT RADAR ITEMS: ${JSON.stringify(recentItems.slice(-40), null, 2)}\n\nFRESH LIVE MATERIAL (${freshRaw.length} items after previous-signal exclusion):\n${JSON.stringify(freshRaw.slice(0, 520), null, 2)}`,
-      24000
+      `You are running ROUND ${round} of the MEDIMANCH FAST SIGNAL DISCOVERY CLOUD.
+Return a LARGE discovery board, not a narrative report. Target 75 unique candidates; acceptable 60-100.
+Use only the supplied live material. Do not invent current events, search volume or evidence.
+Prioritize concrete, specific signals over umbrella topics. Reject generic terms unless they point to a specific behaviour, question, practice, test, mechanism, controversy, food, creator movement, Indian context or visual opportunity.
+Distribute candidates across many signal families. Each keyword should be short (2-7 words) and independently clickable.
+Signal strength 0-100 must reflect the supplied evidence: source diversity, repetition, freshness, specificity and researchability.
+Return compact JSON only: {"asOf":"...","round":${round},"mode":"${plan.mode.name}","items":[{"keyword":"...","signalType":"...","signalStrength":0,"evidenceCount":0,"sourceCount":0,"freshness":"HIGH|MEDIUM|LOW","specificity":"HIGH|MEDIUM|LOW","whyNow":"short","evidence":"short","sourceMix":["YouTube","Reddit","Google News"],"indiaRelevance":"short","novelty":"MEDIUM|HIGH|VERY HIGH","researchPotential":"short","visualPotential":"short","humanQuestion":"short","suggestedStartQuery":"short"}],"caveats":[]}.
+Do not repeat previous keywords. Prefer novelty and breadth. Keep every item evidence-linked.`,
+      `DISCOVERY LENS: ${plan.mode.name}
+QUERY PLAN: ${JSON.stringify(queries)}
+PREVIOUSLY SEEN KEYWORDS: ${JSON.stringify(seenKeywords.slice(-220))}
+RECENT RADAR ITEMS: ${JSON.stringify(recentItems.slice(-50))}
+FRESH LIVE MATERIAL (${freshRaw.length} items):
+${JSON.stringify(freshRaw.slice(0, 360))}`,
+      12000
     );
-    // If the first pass is too conservative, use a second expansion pass to fill the board.
-    // This is deliberately bounded so Radar stays a discovery engine, not an endless LLM loop.
-    if (Array.isArray(result.items) && result.items.length < 60) {
-      const need = Math.min(100 - result.items.length, 75);
-      const expansion = await llm(
-        `Expand this Radar board to at least 60 and ideally 75 UNIQUE candidates. Add ${need} more candidates using ONLY the supplied live material. Do not repeat existing keywords. Prefer unexplored signal families, specific human questions, behaviours, mechanisms, tests, Indian context, visual opportunities and cross-topic mutations. Keep each candidate concrete and evidence-linked. Return JSON only: {"items":[{"keyword":"...","signalType":"...","signalStrength":0,"evidenceCount":0,"sourceCount":0,"freshness":"HIGH|MEDIUM|LOW","specificity":"HIGH|MEDIUM|LOW","whyNow":"...","evidence":"...","sourceMix":[],"indiaRelevance":"...","novelty":"...","researchPotential":"...","visualPotential":"...","humanQuestion":"...","suggestedStartQuery":"..."}]}. Existing keywords: ${JSON.stringify((result.items||[]).map(x=>x.keyword))}`,
-        `LIVE MATERIAL: ${JSON.stringify(freshRaw.slice(0,520), null, 2)}`,
-        18000
-      );
-      result.items = [...(result.items || []), ...(expansion.items || [])];
-    }
+
     if (Array.isArray(result.items)) {
       const dedup = new Map();
       for (const item of result.items) {
         const k = clean(item.keyword).toLowerCase();
         if (k && !dedup.has(k)) dedup.set(k, item);
       }
-      result.items = [...dedup.values()].sort((a,b) => Number(b.signalStrength||0) - Number(a.signalStrength||0)).slice(0,100);
+      result.items = [...dedup.values()]
+        .filter(x => !seenKeywordSet.has(clean(x.keyword).toLowerCase()))
+        .sort((a,b) => Number(b.signalStrength||0) - Number(a.signalStrength||0))
+        .slice(0,100);
     }
     if (!result.mode) result.mode = plan.mode.name;
     if (!result.round) result.round = round;
-    res.json({ ok: true, result, rawSignals: freshRaw.slice(0, 180), generatedAt: new Date().toISOString(), round, mode: plan.mode, queries });
+    res.json({ ok: true, result, rawSignals: freshRaw.slice(0, 120), generatedAt: new Date().toISOString(), round, mode: plan.mode, queries });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
