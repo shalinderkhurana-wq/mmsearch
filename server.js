@@ -172,6 +172,51 @@ const radarSeeds = [
   'Ayurveda wellness trend India', 'protein nutrition trend India', 'sleep wellness trend India', 'breathing wellness trend India'
 ];
 
+// Radar V5.1 is intentionally multi-round. Each round changes the discovery lens instead of
+// repeatedly asking the same broad queries. The browser sends the seen history so the server
+// can suppress previously surfaced keywords/signals and keep mutating into new territory.
+const radarModes = [
+  { name: 'CURRENT MOVEMENT', desc: 'newly discussed wellness practices, terms, creator movement and public movement', queries: [
+    'emerging wellness practice India 2026', 'new health term India 2026', 'wellness creators India discussing', 'health discussion India this month', 'new nutrition behaviour India', 'health trend Hindi India', 'wellness comments India 2026', 'new health practice creators India'
+  ]},
+  { name: 'HUMAN QUESTIONS', desc: 'real questions, confusion, why/how/does-it-work language and unresolved public curiosity', queries: [
+    'why does my body India question', 'health questions people ask India', 'wellness does this work India', 'health why how question Reddit India', 'nutrition confusion India questions', 'people asking health why India', 'health questions Hindi India', 'wellness confusion comments India'
+  ]},
+  { name: 'BEHAVIOUR RADAR', desc: 'things people are actually doing, trying, eating, timing or changing', queries: [
+    'people doing wellness practice India', 'morning health routine India discussion', 'after meal health habit India', 'home wellness practice India', 'people trying health hack India', 'daily health habit India discussion', 'new wellness routine India', 'health habit comments India'
+  ]},
+  { name: 'VISUAL BEHAVIOUR', desc: 'practices and phenomena that can be physically demonstrated, tested, compared or observed', queries: [
+    'health experiment people try India', 'visible body health test India', 'before after health experiment India', 'wellness demonstration India creator', 'physical health hack test India', 'body experiment Hindi India', 'health comparison experiment India', 'visible wellness practice India'
+  ]},
+  { name: 'INDIA CONTEXT', desc: 'Indian household behaviour, food, traditional practice, family discussion and local creator vocabulary', queries: [
+    'Indian household health practice discussion', 'Indian food health belief discussion', 'Ayurveda home practice India discussion', 'desi health habit discussion India', 'Indian parents health advice discussion', 'Indian kitchen health practice', 'Indian traditional wellness discussion'
+  ]},
+  { name: 'CROSS-TOPIC MUTATION', desc: 'movement between wellness ecosystems such as gut, hydration, sleep, energy, recovery, breathing and lifestyle', queries: [
+    'gut hydration connection wellness India', 'sleep digestion connection India', 'breathing energy recovery wellness India', 'movement gut health India', 'hydration sleep energy discussion India', 'gut sleep breathing connection India', 'recovery hydration movement India'
+  ]},
+  { name: 'EDGE / UNDER-COVERED', desc: 'less obvious, niche, disputed, newly named or under-covered wellness signals', queries: [
+    'unusual wellness practice India discussion', 'controversial health practice India evidence', 'less known health habit India', 'newly named wellness concept India', 'health practice people disagree about India', 'niche wellness India creator', 'under covered health practice India'
+  ]}
+];
+
+function radarModeFor(round = 1) {
+  if (round <= radarModes.length) return radarModes[round - 1];
+  const cycle = radarModes[(round - 1) % radarModes.length];
+  return { ...cycle, name: `${cycle.name} + MUTATION ${round}` };
+}
+
+function radarQueryPlan(round, seenKeywords = [], recentItems = []) {
+  const mode = radarModeFor(round);
+  const seen = seenKeywords.slice(-80).join(', ');
+  const recent = recentItems.slice(-18).map(x => x.keyword || x).join(', ');
+  const mutationTerms = unique([
+    ...recentItems.slice(-10).flatMap(x => String(x.keyword || '').split(/\s+/)),
+    ...seenKeywords.slice(-12).flatMap(x => String(x).split(/\s+/))
+  ]).filter(x => x.length > 3).slice(-20);
+  const mutation = mutationTerms.length ? mutationTerms.slice(0, 8).map(x => `${x} new question India`).concat(mutationTerms.slice(0, 5).map(x => `${x} behaviour experiment India`)) : [];
+  return { mode, queries: unique([...mode.queries, ...mutation]), seen, recent };
+}
+
 app.get('/api/health', (req, res) => res.json({ ok: true, youtube: Boolean(YOUTUBE_API_KEY), llm: Boolean(OPENAI_API_KEY), model: OPENAI_MODEL, reddit: 'public-discovery', newsRss: true, radar: true, time: new Date().toISOString() }));
 
 app.post('/api/map', async (req, res) => {
@@ -190,14 +235,28 @@ app.post('/api/map', async (req, res) => {
 
 app.post('/api/radar', async (req, res) => {
   try {
+    const round = Math.max(1, Number(req.body?.round || 1));
+    const seenKeywords = Array.isArray(req.body?.seenKeywords) ? req.body.seenKeywords.map(clean).filter(Boolean) : [];
+    const seenTitles = Array.isArray(req.body?.seenTitles) ? req.body.seenTitles.map(clean).filter(Boolean) : [];
+    const recentItems = Array.isArray(req.body?.recentItems) ? req.body.recentItems : [];
     const extra = Array.isArray(req.body?.extraQueries) ? req.body.extraQueries.map(clean).filter(Boolean) : [];
-    const raw = await collectSignals([...radarSeeds, ...extra], 7);
+    const plan = radarQueryPlan(round, seenKeywords, recentItems);
+    const queries = unique([...plan.queries, ...extra]).slice(0, 18);
+    const raw = await collectSignals(queries, 8);
+    const seenKeywordSet = new Set(seenKeywords.map(x => x.toLowerCase()));
+    const seenTitleSet = new Set(seenTitles.map(x => x.toLowerCase()));
+    const freshRaw = raw.filter(x => {
+      const title = clean(x.title).toLowerCase();
+      return title && !seenTitleSet.has(title) && !seenKeywordSet.has(title);
+    });
     const result = await llm(
-      `You are running the OPTIONAL MEDIMANCH SIGNAL RADAR. The goal is not to declare winners. Extract a compact discovery pool of health/wellness terms, behaviours, practices, ingredients, questions or emerging vocabulary that show meaningful signals in the supplied material. Do not force them into the MEDIMANCH hierarchy yet. Return JSON only: {"asOf":"...","items":[{"keyword":"...","signalType":"SEARCH-LIKE|HUMAN-QUESTION|CREATOR-MOVEMENT|PUBLIC-DISCUSSION|NEW-VOCABULARY|CROSS-TOPIC|NEWS-MOVEMENT","whyNow":"...","evidence":"...","sourceMix":["YouTube","Reddit","Google News"],"indiaRelevance":"...","novelty":"LOW|MEDIUM|HIGH|VERY HIGH","researchPotential":"...","suggestedStartQuery":"..."}],"caveats":["..."]}. Include only terms supported by the supplied material. Do not claim Google search acceleration unless Google Trends/search data is actually present. Use 'signal' language rather than 'viral' when evidence is limited. Prefer diverse opportunities, including unexpected terms. Keep premium/course potential OUT of this radar.`,
-      `RADAR SEED QUERIES: ${JSON.stringify(radarSeeds)}\n\nLIVE MATERIAL (${raw.length} items):\n${JSON.stringify(raw.slice(0, 320), null, 2)}`,
-      12000
+      `You are running ROUND ${round} of the OPTIONAL MEDIMANCH SIGNAL DISCOVERY ENGINE. This is NOT a repeated generic trend scan. The current discovery lens is: ${plan.mode.name}. Lens purpose: ${plan.mode.desc}.\n\nYour job is to surface genuinely fresh starting opportunities from the supplied live material. Do not force them into the MEDIMANCH hierarchy yet. Do not return previously surfaced keywords unless the new evidence is materially different; prefer NEW terms, behaviours, human questions, practices, mechanisms, vocabulary or cross-topic connections. If a candidate is too generic (for example just 'gut health', 'weight loss', 'protein') mutate it into the more specific new behaviour/question/practice that the evidence actually supports.\n\nReturn JSON only: {"asOf":"...","round":${round},"mode":"${plan.mode.name}","items":[{"keyword":"...","signalType":"SEARCH-LIKE|HUMAN-QUESTION|CREATOR-MOVEMENT|PUBLIC-DISCUSSION|NEW-VOCABULARY|CROSS-TOPIC|BEHAVIOUR|VISUAL-OPPORTUNITY|NEWS-MOVEMENT","whyNow":"...","evidence":"...","sourceMix":["YouTube","Reddit","Google News"],"indiaRelevance":"...","novelty":"LOW|MEDIUM|HIGH|VERY HIGH","researchPotential":"...","visualPotential":"...","humanQuestion":"...","suggestedStartQuery":"..."}],"caveats":["..."]}.\n\nFreshness rule: avoid these previously surfaced keywords: ${JSON.stringify(seenKeywords.slice(-100))}. Avoid these previously surfaced evidence titles: ${JSON.stringify(seenTitles.slice(-160))}.\n\nDo not claim Google search acceleration unless Google Trends/search data is actually present. Use 'signal' language rather than 'viral' when evidence is limited. Prefer diverse opportunities. Keep premium/course potential OUT of this radar.`,
+      `DISCOVERY LENS: ${plan.mode.name}\nQUERY PLAN: ${JSON.stringify(queries)}\nPREVIOUSLY SEEN KEYWORDS: ${JSON.stringify(seenKeywords.slice(-100))}\nRECENT RADAR ITEMS: ${JSON.stringify(recentItems.slice(-24), null, 2)}\n\nFRESH LIVE MATERIAL (${freshRaw.length} items after previous-signal exclusion):\n${JSON.stringify(freshRaw.slice(0, 360), null, 2)}`,
+      14000
     );
-    res.json({ ok: true, result, rawSignals: raw.slice(0, 180), generatedAt: new Date().toISOString() });
+    if (!result.mode) result.mode = plan.mode.name;
+    if (!result.round) result.round = round;
+    res.json({ ok: true, result, rawSignals: freshRaw.slice(0, 180), generatedAt: new Date().toISOString(), round, mode: plan.mode, queries });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
