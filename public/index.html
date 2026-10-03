@@ -16,7 +16,7 @@
 <aside class="right"><h3>CURRENT PATH</h3><div id="path" class="pathbox">Home</div><h3>SAVED SHORTLIST</h3><div id="saved"></div></aside>
 </div>
 <script>
-const state={map:null,node:null,result:null,raw:[],saved:JSON.parse(localStorage.getItem('mm_saved_v4')||'[]'),history:[],radar:[]};
+const state={map:null,node:null,result:null,raw:[],saved:JSON.parse(localStorage.getItem('mm_saved_v4')||'[]'),history:[],radar:[],radarLens:0,radarSeen:JSON.parse(localStorage.getItem('mm_radar_seen_v2')||'[]')};
 const $=id=>document.getElementById(id); const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 function saveLocal(){localStorage.setItem('mm_saved_v4',JSON.stringify(state.saved));renderSaved()}
 function renderSaved(){ $('saved').innerHTML=state.saved.length?state.saved.map((x,i)=>`<div class="saved"><button onclick='selectSaved(${i})'>${esc(x.path.join(' › '))}</button><button onclick='removeSaved(${i})'>×</button></div>`).join(''):'<div class="small">Nothing saved yet.</div>' }
@@ -31,31 +31,56 @@ async function buildMap(){const keyword=$('keyword').value.trim();if(!keyword)re
 function openRadar(){
   $('crumb').innerHTML='<b>Optional Signal Radar</b>';
   $('path').innerHTML='Signal Radar (separate from research map)';
-  $('main').innerHTML=`<div class="hero"><div><div class="node-type">OPTIONAL DISCOVERY GATE</div><h1>MEDIMANCH Signal Radar</h1><p>Find specific emerging health/wellness signal keywords. This gate does not change your main research map or selected keyword workflow.</p></div><div class="actions"><button class="btn" onclick="renderMain()">← Back to Research</button><button class="btn primary" onclick="runRadar()">SCAN NEW SIGNALS</button></div></div><div class="status">Radar purpose: discover future research keywords such as named behaviours, practices, routines, biohacks, compounds, food/hydration habits, movement/recovery practices and emerging wellness vocabulary. It does not treat article headlines as keywords.</div><div id="radarbody"><div class="empty">Click <b>SCAN NEW SIGNALS</b> to build the optional discovery pool.</div></div>`;
+  $('main').innerHTML=`<div class="hero"><div><div class="node-type">OPTIONAL DISCOVERY GATE</div><h1>MEDIMANCH Signal Radar</h1><p>Find specific emerging health/wellness signal keywords. This gate never changes the main Explore research engine.</p></div><div class="actions"><button class="btn" onclick="renderMain()">← Back to Research</button><button class="btn primary" onclick="runRadar(true)">REFRESH WITH NEW LENS</button></div></div><div class="status"><b>Purpose:</b> discover the next research keyword — named behaviours, practices, routines, biohacks, compounds, food/hydration habits, movement/recovery practices and emerging wellness vocabulary. It does not treat article headlines as keywords.</div><div id="radarbody"><div class="empty">Choose a lens or click <b>REFRESH WITH NEW LENS</b>.</div></div>`;
+  renderRadarShell();
 }
-async function runRadar(){
-  setBusy(true,'Scanning optional Signal Radar…');
+function renderRadarShell(){
+  const lenses=['REAL PEOPLE TRYING','NEW WELLNESS VOCABULARY','MOVEMENT & BODY PRACTICES','GUT / FOOD / HYDRATION HABITS','SLEEP / RECOVERY / LONGEVITY','QUESTIONS & PUBLIC DISCUSSION','BIOHACK / COMPOUND / OPTIMISATION','UNDER-COVERED / UNUSUAL SIGNALS'];
+  const el=$('radarbody'); if(!el) return;
+  const buttons=lenses.map((x,i)=>`<button class="btn ${i===state.radarLens?'primary':''}" onclick="runRadar(false,${i})">${x}</button>`).join('');
+  el.innerHTML=`<section class="card"><h2>DISCOVERY LENSES</h2><div class="small">Each lens searches a different signal family. A refresh does not simply repeat the previous search.</div><div class="actions" style="margin-top:10px">${buttons}</div><div class="small" style="margin-top:10px">Previously surfaced keywords are remembered and sent to the next scan so the engine looks for new terms rather than renaming old ones.</div></section><div class="empty">No scan in this lens yet.</div>`;
+}
+async function runRadar(autoNext=true,forcedLens=null){
+  if(forcedLens!==null) state.radarLens=Number(forcedLens)||0;
+  setBusy(true,'Scanning a fresh MEDIMANCH signal lens…');
   try{
-    const r=await fetch('/api/radar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
-    const j=await r.json();
+    const r=await fetch('/api/radar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lensIndex:state.radarLens,seenKeywords:state.radarSeen})});
+    const text=await r.text(); let j; try{j=JSON.parse(text)}catch{throw new Error('Radar returned a non-JSON response. Please retry.');}
     if(!r.ok) throw new Error(j.error||'Radar failed');
     state.radar=j.items||[];
+    state.radarSeen=[...new Set([...state.radarSeen,...state.radar.map(x=>x.keyword).filter(Boolean)])].slice(-800);
+    localStorage.setItem('mm_radar_seen_v2',JSON.stringify(state.radarSeen));
     renderRadarResults(j);
     if(j.ok===false) notice(j.error||'Radar unavailable.',true); else clearNotice();
+    if(autoNext) state.radarLens=(state.radarLens+1)%8;
   }catch(e){notice(e.message,true)}finally{setBusy(false)}
 }
 function renderRadarResults(j){
   const items=(j.items||[]).filter(x=>x&&x.keyword);
-  const cloud=items.map((x,i)=>`<button title="${esc(x.whyNow||'')}" onclick='radarExplore(${JSON.stringify(x.keyword)})' style="font-size:${Math.max(12,Math.min(24,12+Math.round((Number(x.strength)||50)/12)))}px">${esc(x.keyword)}</button>`).join('')||'<div class="empty" style="width:100%">No defensible signal keywords returned. Radar did not convert generic headlines into fake keywords.</div>';
-  const cards=items.slice(0,24).map(x=>`<div class="radarcard"><span class="score">${esc(x.strength||'—')}/100</span><h3>${esc(x.keyword)}</h3><span class="tag">${esc(x.signalType||'signal')}</span><div class="signal"><b>Why now:</b> ${esc(x.whyNow||'—')}</div><div class="signal"><b>MEDIMANCH fit:</b> ${esc(x.medimanchFit||'—')}</div><div class="small"><b>Start research:</b> ${esc(x.suggestedResearchStart||x.keyword)}</div><button class="btn primary" style="margin-top:8px" onclick='radarExplore(${JSON.stringify(x.keyword)})'>Explore This Keyword</button></div>`).join('');
-  $('radarbody').innerHTML=`<section class="card"><h2>SIGNAL KEYWORD CLOUD — ${items.length} DISCOVERIES</h2><div class="small">This is an optional pool only. Clicking a keyword sends it through the original MEDIMANCH Explore workflow; Radar never rewrites that workflow.</div><div class="cloud">${cloud}</div></section><div class="radargrid">${cards||'<div class="empty">No strong candidates.</div>'}</div>${(j.caveats||[]).length?`<div class="notice">${j.caveats.map(esc).join('<br>')}</div>`:''}`;
+  const cloud=items.map((x,i)=>`<button title="${esc(x.humanSignal||x.whyNow||'')}" onclick='radarExplore(${JSON.stringify(x.keyword)})' style="font-size:${Math.max(12,Math.min(26,12+Math.round((Number(x.strength)||50)/10)))}px">${esc(x.keyword)}</button>`).join('')||'<div class="empty" style="width:100%">No strong signal keywords returned. Try another lens.</div>';
+  const cards=items.slice(0,30).map(x=>`<div class="radarcard"><span class="score">${esc(x.strength||'—')}/100</span><h3>${esc(x.keyword)}</h3><span class="tag">${esc(x.signalType||'signal')}</span><div class="signal"><b>Human signal:</b> ${esc(x.humanSignal||'—')}</div><div class="signal"><b>Why now:</b> ${esc(x.whyNow||'—')}</div><div class="signal"><b>MEDIMANCH fit:</b> ${esc(x.medimanchFit||'—')}</div><div class="small"><b>Sources:</b> ${esc((x.sourceMix||[]).join(', ')||'—')}</div><button class="btn primary" style="margin-top:8px" onclick='radarExplore(${JSON.stringify(x.keyword)})'>Explore This Keyword</button></div>`).join('');
+  const lens=j.lens||'CURRENT LENS';
+  $('radarbody').innerHTML=`<section class="card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2 style="margin:0">SIGNAL KEYWORD CLOUD — ${items.length} DISCOVERIES</h2><span class="tag">${esc(lens)}</span></div><div class="small" style="margin:8px 0">These are candidate research keywords, not article headlines. Larger terms indicate stronger evidence in the scanned source mix, not Google Trends volume.</div><div class="cloud">${cloud}</div></section><section class="card" style="margin-top:14px"><h2>REFRESH / CHANGE ANGLE</h2><div class="actions"><button class="btn primary" onclick="runRadar(true)">REFRESH WITH NEW LENS</button><button class="btn" onclick="state.radarSeen=[];localStorage.removeItem('mm_radar_seen_v2');runRadar(false)">RESET SIGNAL HISTORY</button></div><div class="small" style="margin-top:8px">Current saved signal history: ${state.radarSeen.length} keywords. New scans exclude these where possible.</div></section><div class="radargrid">${cards||'<div class="empty">No expanded candidates.</div>'}</div>${(j.caveats||[]).length?`<div class="notice">${j.caveats.map(esc).join('<br>')}</div>`:''}`;
 }
 function radarExplore(keyword){$('keyword').value=keyword;buildMap()}
 
 function setBusy(b,msg=''){document.querySelectorAll('button').forEach(x=>x.disabled=b);if(msg)notice(msg)}
 function notice(msg,err=false){let x=document.querySelector('.notice');if(!x){x=document.createElement('div');x.className='notice';$('main').prepend(x)}x.className='notice'+(err?' status err':'');x.textContent=msg}function clearNotice(){document.querySelector('.notice')?.remove()}
-function renderMain(){const n=state.node;if(!n)return;const canResearch=n.type!=='flagship';let body='';if(state.result)body=renderResult(state.result);else body=`<div class="empty">${canResearch?'This node is selected. Live research is intentionally not automatic. Click <b>Research This Node</b> when you want current signals.':'This is the flagship map. Select a Territory, Sub-category or Cluster to research it.'}</div>`;$('main').innerHTML=`<div class="hero"><div><div class="node-type">${esc(n.type)}</div><h1>${esc(n.label)}</h1><p>${esc(n.description||'Selected research node. The map stays stable; signals are refreshed separately.')}</p></div><div class="actions">${canResearch?`<button class="btn primary" onclick="research('research')">Research This Node</button><button class="btn green" onclick="research('deeper')">Go Deeper</button><button class="btn" onclick="research('redo')">Research Again</button>`:''}</div></div>${canResearch?`<button class="btn save" onclick="saveNode()">☆ Save This ${esc(n.type)}</button>`:''}${body}`}
-function saveNode(){if(!state.node)return;const k=JSON.stringify(state.node.path);if(!state.saved.some(x=>JSON.stringify(x.node.path)===k)){state.saved.unshift({node:state.node,path:state.node.path});state.saved=state.saved.slice(0,100);saveLocal();notice('Saved to shortlist.')}}
+function renderMain(){
+  const n=state.node;if(!n)return;
+  const canResearch=n.type!=='flagship';
+  let body='';
+  if(state.result) body=renderResult(state.result);
+  else if(!canResearch) body=renderMapOverview(n);
+  else body=`<div class="empty">This node is selected. Click <b>Research This Node</b> for current signals, human tension, BIC and visual opportunities.</div>`;
+  $('main').innerHTML=`<div class="hero"><div><div class="node-type">${esc(n.type)}</div><h1>${esc(n.label)}</h1><p>${esc(n.description||'Selected research node. The map stays stable; live signals are refreshed separately.')}</p></div><div class="actions">${canResearch?`<button class="btn primary" onclick="research('research')">Research This Node</button><button class="btn green" onclick="research('deeper')">Go Deeper</button><button class="btn" onclick="research('redo')">Research Again</button>`:''}</div></div>${canResearch?`<button class="btn save" onclick="saveNode()">☆ Save This ${esc(n.type)}</button>`:''}${body}`;
+}
+function renderMapOverview(n){
+  const ts=n.children||[];
+  const cards=ts.map(t=>{const subs=t.children||[];const clusters=subs.reduce((a,s)=>a+(s.children||[]).length,0);return `<div class="card"><h2>${esc(t.label)}</h2><div class="signal">${esc(t.description||'Research territory')}</div><div class="small" style="margin-top:7px">${subs.length} sub-categories · ${clusters} visible clusters</div><div class="item"><b>Research directions</b>${subs.slice(0,8).map(s=>`<div class="small" style="padding:4px 0">• ${esc(s.label)}</div>`).join('')}</div><button class="btn primary" style="margin-top:8px" onclick='showNode(${JSON.stringify({id:t.id,label:t.label,type:'territory',path:[n.label,t.label],children:t.children||[],description:t.description||''})})'>Explore This Territory</button></div>`}).join('');
+  return `<section class="card" style="margin-top:18px"><h2>RESEARCH UNIVERSE — ${ts.length} CONTENT TERRITORIES</h2><div class="small">This is the stable knowledge map. Nothing from Signal Radar is mixed into it. Choose any territory, sub-category or cluster to begin deep live research.</div></section><div class="grid">${cards}</div>`;
+}
+
 async function research(mode){if(!state.node)return;setBusy(true,mode==='redo'?'Re-researching this same node with different directions…':'Researching selected node…');try{const r=await fetch('/api/research',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({node:state.node,mode,previous:state.result})});const j=await r.json();if(!r.ok)throw new Error(j.error||'Research failed');state.result=j.result;state.raw=j.rawSignals||[];state.history.push({node:state.node,result:j.result,mode});renderMain();clearNotice()}catch(e){notice(e.message,true)}finally{setBusy(false)}}
 function list(arr,render){return (arr||[]).map(render).join('')||'<div class="small">No items returned.</div>'}
 function renderResult(r){return `<div class="grid">
