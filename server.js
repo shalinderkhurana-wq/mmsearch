@@ -63,7 +63,7 @@ async function newsRss(q, limit = 15) {
 }
 
 async function collectSignals(queries, perSource = 8) {
-  const qs = unique(queries).slice(0, 18);
+  const qs = unique(queries).slice(0, 24);
   const out = [];
   for (const q of qs) {
     const [yt, rd, nw] = await Promise.allSettled([youtubeSearch(q, perSource), redditSearch(q, perSource), newsRss(q, perSource)]);
@@ -78,7 +78,7 @@ async function collectSignals(queries, perSource = 8) {
     if (!x.title || seen.has(k)) return false;
     seen.add(k);
     return true;
-  }).slice(0, 420);
+  }).slice(0, 600);
 }
 
 async function liveSignals(node, extraQueries = []) {
@@ -241,8 +241,8 @@ app.post('/api/radar', async (req, res) => {
     const recentItems = Array.isArray(req.body?.recentItems) ? req.body.recentItems : [];
     const extra = Array.isArray(req.body?.extraQueries) ? req.body.extraQueries.map(clean).filter(Boolean) : [];
     const plan = radarQueryPlan(round, seenKeywords, recentItems);
-    const queries = unique([...plan.queries, ...extra]).slice(0, 18);
-    const raw = await collectSignals(queries, 8);
+    const queries = unique([...plan.queries, ...extra]).slice(0, 24);
+    const raw = await collectSignals(queries, 6);
     const seenKeywordSet = new Set(seenKeywords.map(x => x.toLowerCase()));
     const seenTitleSet = new Set(seenTitles.map(x => x.toLowerCase()));
     const freshRaw = raw.filter(x => {
@@ -250,10 +250,29 @@ app.post('/api/radar', async (req, res) => {
       return title && !seenTitleSet.has(title) && !seenKeywordSet.has(title);
     });
     const result = await llm(
-      `You are running ROUND ${round} of the OPTIONAL MEDIMANCH SIGNAL DISCOVERY ENGINE. This is NOT a repeated generic trend scan. The current discovery lens is: ${plan.mode.name}. Lens purpose: ${plan.mode.desc}.\n\nYour job is to surface genuinely fresh starting opportunities from the supplied live material. Do not force them into the MEDIMANCH hierarchy yet. Do not return previously surfaced keywords unless the new evidence is materially different; prefer NEW terms, behaviours, human questions, practices, mechanisms, vocabulary or cross-topic connections. If a candidate is too generic (for example just 'gut health', 'weight loss', 'protein') mutate it into the more specific new behaviour/question/practice that the evidence actually supports.\n\nReturn JSON only: {"asOf":"...","round":${round},"mode":"${plan.mode.name}","items":[{"keyword":"...","signalType":"SEARCH-LIKE|HUMAN-QUESTION|CREATOR-MOVEMENT|PUBLIC-DISCUSSION|NEW-VOCABULARY|CROSS-TOPIC|BEHAVIOUR|VISUAL-OPPORTUNITY|NEWS-MOVEMENT","whyNow":"...","evidence":"...","sourceMix":["YouTube","Reddit","Google News"],"indiaRelevance":"...","novelty":"LOW|MEDIUM|HIGH|VERY HIGH","researchPotential":"...","visualPotential":"...","humanQuestion":"...","suggestedStartQuery":"..."}],"caveats":["..."]}.\n\nFreshness rule: avoid these previously surfaced keywords: ${JSON.stringify(seenKeywords.slice(-100))}. Avoid these previously surfaced evidence titles: ${JSON.stringify(seenTitles.slice(-160))}.\n\nDo not claim Google search acceleration unless Google Trends/search data is actually present. Use 'signal' language rather than 'viral' when evidence is limited. Prefer diverse opportunities. Keep premium/course potential OUT of this radar.`,
-      `DISCOVERY LENS: ${plan.mode.name}\nQUERY PLAN: ${JSON.stringify(queries)}\nPREVIOUSLY SEEN KEYWORDS: ${JSON.stringify(seenKeywords.slice(-100))}\nRECENT RADAR ITEMS: ${JSON.stringify(recentItems.slice(-24), null, 2)}\n\nFRESH LIVE MATERIAL (${freshRaw.length} items after previous-signal exclusion):\n${JSON.stringify(freshRaw.slice(0, 360), null, 2)}`,
-      14000
+      `You are running ROUND ${round} of the OPTIONAL MEDIMANCH SIGNAL DISCOVERY ENGINE. This round must behave like a large Google-Trends-style discovery board, but using the live source material supplied here. The current discovery lens is: ${plan.mode.name}. Lens purpose: ${plan.mode.desc}.\n\nNON-NEGOTIABLE OUTPUT SIZE: return 75 UNIQUE discovery candidates whenever the evidence pool supports it. Never stop at 10, 20 or 30. Acceptable range is 60-100; target 75. Every candidate must be meaningfully different, not a synonym or tiny wording variation.\n\nDIVERSITY REQUIREMENT: distribute candidates across multiple signal families: human questions, behaviours, practices, food/ingredients, tests/measurements, body mechanisms, creator movements, public discussions, controversies/disagreements, traditional practices, Indian household behaviour, new vocabulary, visual opportunities, cross-topic connections, and niche/under-covered observations. Do not let one generic subject dominate the board.\n\nSTRONG-SIGNAL REQUIREMENT: prefer candidates with concrete evidence in the supplied material. Score each candidate with signalStrength 0-100 using source diversity, repetition across independent results, freshness, specificity and researchability. Also return evidenceCount, sourceCount, freshness, and specificity. Do not equate popularity with efficacy. Do not invent search volume.\n\nGENERIC FILTER: reject or mutate generic umbrella terms such as 'gut health', 'weight loss', 'protein', 'detox', 'sleep', 'hydration' unless the evidence supports a specific new behaviour, question, mechanism, practice, comparison, test, controversy or vocabulary item underneath them.\n\nFRESHNESS: avoid previously surfaced keywords and evidence titles unless materially new evidence supports a clearly different angle. Use previous results as mutation seeds, not as items to repeat.\n\nReturn JSON only in this exact shape: {"asOf":"...","round":${round},"mode":"${plan.mode.name}","items":[{"keyword":"...","signalType":"SEARCH-LIKE|HUMAN-QUESTION|CREATOR-MOVEMENT|PUBLIC-DISCUSSION|NEW-VOCABULARY|CROSS-TOPIC|BEHAVIOUR|VISUAL-OPPORTUNITY|NEWS-MOVEMENT|MECHANISM|PRACTICE|TEST|CONTROVERSY","signalStrength":0,"evidenceCount":0,"sourceCount":0,"freshness":"HIGH|MEDIUM|LOW","specificity":"HIGH|MEDIUM|LOW","whyNow":"...","evidence":"...","sourceMix":["YouTube","Reddit","Google News"],"indiaRelevance":"...","novelty":"LOW|MEDIUM|HIGH|VERY HIGH","researchPotential":"...","visualPotential":"...","humanQuestion":"...","suggestedStartQuery":"..."}],"caveats":["..."]}.\n\nDo not claim Google search acceleration unless Google Trends/search data is actually present. Keep premium/course potential OUT of Radar. This is discovery only.`,
+      `DISCOVERY LENS: ${plan.mode.name}\nQUERY PLAN: ${JSON.stringify(queries)}\nPREVIOUSLY SEEN KEYWORDS: ${JSON.stringify(seenKeywords.slice(-180))}\nRECENT RADAR ITEMS: ${JSON.stringify(recentItems.slice(-40), null, 2)}\n\nFRESH LIVE MATERIAL (${freshRaw.length} items after previous-signal exclusion):\n${JSON.stringify(freshRaw.slice(0, 520), null, 2)}`,
+      24000
     );
+    // If the first pass is too conservative, use a second expansion pass to fill the board.
+    // This is deliberately bounded so Radar stays a discovery engine, not an endless LLM loop.
+    if (Array.isArray(result.items) && result.items.length < 60) {
+      const need = Math.min(100 - result.items.length, 75);
+      const expansion = await llm(
+        `Expand this Radar board to at least 60 and ideally 75 UNIQUE candidates. Add ${need} more candidates using ONLY the supplied live material. Do not repeat existing keywords. Prefer unexplored signal families, specific human questions, behaviours, mechanisms, tests, Indian context, visual opportunities and cross-topic mutations. Keep each candidate concrete and evidence-linked. Return JSON only: {"items":[{"keyword":"...","signalType":"...","signalStrength":0,"evidenceCount":0,"sourceCount":0,"freshness":"HIGH|MEDIUM|LOW","specificity":"HIGH|MEDIUM|LOW","whyNow":"...","evidence":"...","sourceMix":[],"indiaRelevance":"...","novelty":"...","researchPotential":"...","visualPotential":"...","humanQuestion":"...","suggestedStartQuery":"..."}]}. Existing keywords: ${JSON.stringify((result.items||[]).map(x=>x.keyword))}`,
+        `LIVE MATERIAL: ${JSON.stringify(freshRaw.slice(0,520), null, 2)}`,
+        18000
+      );
+      result.items = [...(result.items || []), ...(expansion.items || [])];
+    }
+    if (Array.isArray(result.items)) {
+      const dedup = new Map();
+      for (const item of result.items) {
+        const k = clean(item.keyword).toLowerCase();
+        if (k && !dedup.has(k)) dedup.set(k, item);
+      }
+      result.items = [...dedup.values()].sort((a,b) => Number(b.signalStrength||0) - Number(a.signalStrength||0)).slice(0,100);
+    }
     if (!result.mode) result.mode = plan.mode.name;
     if (!result.round) result.round = round;
     res.json({ ok: true, result, rawSignals: freshRaw.slice(0, 180), generatedAt: new Date().toISOString(), round, mode: plan.mode, queries });
